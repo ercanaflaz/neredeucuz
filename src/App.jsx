@@ -10,6 +10,7 @@ import SepetSayfa from './pages/SepetSayfa'
 import Admin from './pages/Admin'
 import LocationGate from './components/LocationGate'
 import ReklamRail from './components/ReklamRail'
+import HataSiniri from './components/HataSiniri'
 import { listeYukle as akilliListeYukle, listeleriYukle } from './lib/akilliSepet'
 import { reklamlariYukle } from './lib/reklam'
 
@@ -105,7 +106,9 @@ export default function App() {
         <div className="flex gap-5 justify-center">
           <ReklamRail konum="sol" className="hidden xl:block w-40 shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className={anaSayfa ? '' : 'max-w-2xl mx-auto'}>{sayfa}</div>
+            <div className={anaSayfa ? '' : 'max-w-2xl mx-auto'}>
+              <HataSiniri key={route + (secili?.id || '')}>{sayfa}</HataSiniri>
+            </div>
           </div>
           <ReklamRail konum="sag" className="hidden xl:block w-40 shrink-0" />
         </div>

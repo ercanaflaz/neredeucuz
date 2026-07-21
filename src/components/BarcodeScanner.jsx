@@ -20,25 +20,36 @@ export default function BarcodeScanner({ onDetected, onClose }) {
   const [elle, setElle] = useState(false)
   const [kod, setKod] = useState('')
 
+  // onDetected'i ref'te tut ki kamera efekti ona BAĞIMLI olmasın.
+  // (Bağımlı olursa parent her render'da kamera kapanıp açılır → iOS'ta çöker.)
+  const onDetectedRef = useRef(onDetected)
+  useEffect(() => { onDetectedRef.current = onDetected }, [onDetected])
+
   useEffect(() => {
     if (elle) return // elle giriş modunda kamera çalışmasın
     const el = ref.current
     if (!el) return
-    const scanner = new Html5Qrcode(el.id, {
-      verbose: false,
-      formatsToSupport: FORMATLAR,
-      // Chrome/Android'in yerleşik BarcodeDetector'ını kullan — çok daha hızlı ve hassas.
-      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-    })
+    let scanner
+    try {
+      scanner = new Html5Qrcode(el.id, {
+        verbose: false,
+        formatsToSupport: FORMATLAR,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      })
+    } catch (e) { setHata(kameraHatasi(e)); return }
+
     let durdu = false
+    const guvenliDurdur = () => {
+      try { return scanner.stop() } catch { return Promise.resolve() }
+    }
     const basarili = (metin) => {
       if (durdu) return
       durdu = true
-      // titreşimle geri bildirim (destekleyen cihazlarda)
-      try { navigator.vibrate?.(60) } catch { /* yok */ }
-      scanner.stop().catch(() => {}).finally(() => onDetected(String(metin).trim()))
+      try { navigator.vibrate?.(60) } catch { /* iOS'ta yok */ }
+      guvenliDurdur().catch(() => {}).finally(() => {
+        try { onDetectedRef.current(String(metin).trim()) } catch { /* yut */ }
+      })
     }
-    // Görüntü kutusu: barkod için geniş ve yatay, kadraja göre ölçekli.
     const qrbox = (vw, vh) => {
       const w = Math.floor(Math.min(vw, vh, 340) * 0.9)
       return { width: w, height: Math.max(120, Math.floor(w * 0.6)) }
@@ -46,7 +57,7 @@ export default function BarcodeScanner({ onDetected, onClose }) {
     scanner
       .start(
         { facingMode: 'environment' },
-        { fps: 15, qrbox, aspectRatio: 1.3333, disableFlip: false },
+        { fps: 10, qrbox, aspectRatio: 1.3333, disableFlip: false },
         basarili,
         () => {},
       )
@@ -54,9 +65,10 @@ export default function BarcodeScanner({ onDetected, onClose }) {
 
     return () => {
       durdu = true
-      scanner.stop().catch(() => {})
+      guvenliDurdur().catch(() => {})
     }
-  }, [onDetected, elle])
+    // SADECE elle moduna göre — onDetected değişince kamera yeniden başlamasın.
+  }, [elle])
 
   function elleGonder(e) {
     e?.preventDefault()
