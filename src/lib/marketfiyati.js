@@ -4,7 +4,11 @@
 //  - yayında: functions/api/mf/[[path]].js (Cloudflare Pages Function)
 // Bu sayede CORS sorunu olmaz.
 
-const BASE = '/api/mf'
+// Yerelde (dev): vite proxy /api/mf → CORS derdi olmadan çalışır.
+// Canlıda (prod): marketfiyati Cloudflare sunucularını blokluyor; ama tarayıcıdan
+// DOĞRUDAN çağrıya CORS izni veriyor. Bu yüzden prod'da doğrudan çağırırız —
+// her kullanıcı kendi ev IP'siyle bağlanır, datacenter bloğu devre dışı kalır.
+const BASE = import.meta.env.DEV ? '/api/mf' : 'https://api.marketfiyati.org.tr/api/v2'
 
 async function post(endpoint, body) {
   const res = await fetch(`${BASE}/${endpoint}`, {
