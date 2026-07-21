@@ -1,0 +1,320 @@
+import { useState, useMemo, useSyncExternalStore, lazy, Suspense } from 'react'
+import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal } from 'lucide-react'
+import ProductCard from '../components/ProductCard'
+import AdSlot from '../components/AdSlot'
+import MarketBadge from '../components/MarketBadge'
+import { POPULER } from '../data/populer'
+import { marka } from '../lib/markets'
+import { searchByKeyword, searchByBarcode, normalize } from '../lib/marketfiyati'
+import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla } from '../lib/store'
+import { ReklamSerit } from '../components/ReklamRail'
+import AiAsistan from '../components/AiAsistan'
+
+const KATEGORILER = [
+  { ad: 'Temel gıda', terim: 'pirinç', emoji: '🍚', grad: 'from-amber-400 to-orange-500' },
+  { ad: 'Süt & Kahvaltı', terim: 'süt', emoji: '🥛', grad: 'from-sky-400 to-blue-500' },
+  { ad: 'Temizlik', terim: 'deterjan', emoji: '🧴', grad: 'from-cyan-400 to-teal-500' },
+  { ad: 'İçecek', terim: 'çay', emoji: '☕', grad: 'from-rose-400 to-pink-500' },
+  { ad: 'Atıştırmalık', terim: 'bisküvi', emoji: '🍪', grad: 'from-violet-400 to-purple-500' },
+  { ad: 'Bebek', terim: 'bebek bezi', emoji: '🍼', grad: 'from-emerald-400 to-green-500' },
+]
+
+// Barkod tarayıcı (html5-qrcode) sadece gerektiğinde yüklensin — ilk açılış hızlı.
+const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
+
+const KAPSANAN = ['BİM', 'A101', 'ŞOK', 'Migros', 'CarrefourSA', 'Hakmar', 'Tarım Kredi']
+
+function formatMesafe(m) {
+  if (m == null) return ''
+  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`
+}
+
+export default function Home({ onSelect }) {
+  const store = useSyncExternalStore(subscribe, getSnapshot)
+  const [q, setQ] = useState('')
+  const [sonuclar, setSonuclar] = useState([])
+  const [yukleniyor, setYukleniyor] = useState(false)
+  const [hata, setHata] = useState(null)
+  const [tarayici, setTarayici] = useState(false)
+  const [bilgi, setBilgi] = useState('')
+  const [aranan, setAranan] = useState('')
+  const [aktifKelime, setAktifKelime] = useState('')
+  const [siralama, setSiralama] = useState('ucuz') // ucuz | fark
+  const [marketFiltre, setMarketFiltre] = useState(null)
+
+  async function aramaYap(kelime) {
+    const k = (kelime ?? q).trim()
+    if (!k) return
+    const konum = getSnapshot().konum
+    setQ(k); setAktifKelime(k); setMarketFiltre(null)
+    setYukleniyor(true); setHata(null); setBilgi(''); setAranan(k)
+    aramaLogla(k)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    try {
+      const res = await searchByKeyword(k, konum)
+      const list = normalize(res, konum)
+      setSonuclar(list)
+      if (!list.length) setBilgi(konum ? 'Bu bölgede sonuç bulunamadı. Yarıçapı büyütmeyi ya da farklı bir kelimeyi dene.' : 'Sonuç bulunamadı. Farklı bir kelime dene.')
+    } catch {
+      setHata('Arama başarısız oldu. Bağlantını kontrol et.')
+    } finally {
+      setYukleniyor(false)
+    }
+  }
+
+  async function barkodOkundu(kod) {
+    setTarayici(false)
+    const konum = getSnapshot().konum
+    setYukleniyor(true); setHata(null); setBilgi(''); setQ(kod); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null)
+    try {
+      const res = await searchByBarcode(kod, konum)
+      const list = normalize(res, konum)
+      setSonuclar(list)
+      if (list.length === 1) onSelect(list[0])
+      else if (!list.length) setBilgi(konum ? `"${kod}" barkodlu ürün bölgende bulunamadı.` : `"${kod}" barkodu bulunamadı. İsimle aramayı dene.`)
+    } catch {
+      setHata('Barkod sorgulanamadı. Bağlantını kontrol et.')
+    } finally {
+      setYukleniyor(false)
+    }
+  }
+
+  function yaricapSec(km) {
+    yaricapDegistir(km)
+    if (aktifKelime) setTimeout(() => aramaYap(aktifKelime), 0)
+  }
+
+  // Sonuçlarda bulunan marketler (filtre çipleri için)
+  const marketler = useMemo(() => {
+    const s = new Set()
+    sonuclar.forEach((u) => u.depots.forEach((d) => s.add(marka(d.market).ad)))
+    return [...s]
+  }, [sonuclar])
+
+  // Filtre + sıralama uygulanmış liste
+  const gosterilen = useMemo(() => {
+    let list = sonuclar
+    if (marketFiltre) list = list.filter((u) => u.depots.some((d) => marka(d.market).ad === marketFiltre))
+    if (siralama === 'fark') {
+      list = [...list].sort((a, b) => ((b.maxPrice - b.minPrice) || 0) - ((a.maxPrice - a.minPrice) || 0))
+    } else {
+      list = [...list].sort((a, b) => (a.minPrice ?? 1e9) - (b.minPrice ?? 1e9))
+    }
+    return list
+  }, [sonuclar, marketFiltre, siralama])
+
+  const aramaVar = aranan || sonuclar.length || yukleniyor
+
+  return (
+    <div className="space-y-6">
+      {tarayici && (
+        <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center text-white"><Loader2 className="animate-spin" /></div>}>
+          <BarcodeScanner onDetected={barkodOkundu} onClose={() => setTarayici(false)} />
+        </Suspense>
+      )}
+
+      {/* HERO */}
+      <div className="rounded-3xl bg-gradient-to-br from-primary to-green-700 text-primary-content p-6 sm:p-8 lg:p-10 shadow-lg">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-2 text-sm/none opacity-90 mb-2">
+            <TrendingDown size={18} /> en ucuz market cebinde
+          </div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight">
+            Bir ürün seç, <span className="text-secondary">en ucuz nerede</span> anında gör
+          </h1>
+          <p className="opacity-90 mt-2 text-sm lg:text-base">
+            Ürün adını yaz ve <b>Ara</b>'ya bas, ya da <b>Barkodla tara</b>. BİM, A101, ŞOK, Migros ve daha fazlasını tek ekranda karşılaştır.
+          </p>
+
+          {/* Arama: net "Ara" + ayrı "Barkodla tara" (seçenekli) */}
+          <form onSubmit={(e) => { e.preventDefault(); aramaYap() }} className="mt-5 space-y-2">
+            <label className="input input-lg flex items-center gap-2 w-full bg-base-100 text-base-content rounded-2xl">
+              <Search size={20} className="text-base-content/40" />
+              <input
+                type="text"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="süt, yumurta, deterjan..."
+                className="grow"
+                inputMode="search"
+                enterKeyHint="search"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button type="submit" className="btn btn-lg flex-1 rounded-2xl bg-base-100 text-primary border-none hover:bg-base-200">
+                <Search size={20} /> Ara
+              </button>
+              <button type="button" onClick={() => setTarayici(true)} className="btn btn-lg flex-1 rounded-2xl btn-outline text-primary-content border-white/60 hover:bg-white/15 hover:border-white">
+                <Barcode size={20} /> Barkodla tara
+              </button>
+            </div>
+          </form>
+
+          <button onClick={konumIste} className="flex items-center gap-1.5 text-xs mt-3 opacity-90">
+            <MapPin size={14} />
+            {store.konumDurumu === 'tamam'
+              ? `Konumun açık — ${store.yaricap} km çevrendeki fiyatlar`
+              : store.konumDurumu === 'isteniyor'
+              ? 'Konum alınıyor...'
+              : 'Konumumu kullan (yakın fiyatlar için)'}
+          </button>
+
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="text-xs opacity-90">Bölge yarıçapı:</span>
+            <div className="join">
+              {YARICAP_SECENEKLERI.map((km) => (
+                <button
+                  key={km}
+                  onClick={() => yaricapSec(km)}
+                  className={`join-item btn btn-xs border-none ${
+                    store.yaricap === km ? 'bg-base-100 text-primary' : 'bg-white/20 text-primary-content hover:bg-white/30'
+                  }`}
+                >
+                  {km} km
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Güven şeridi */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[['🏪', '7 market'], ['📦', '50.000+ ürün'], ['⚡', 'anlık fiyat'], ['🆓', 'ücretsiz']].map(([e, t]) => (
+              <span key={t} className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur rounded-full px-3 py-1 text-xs font-medium">
+                <span>{e}</span> {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bento kategoriler + AI asistan + anasayfa reklam şeridi */}
+      {!aramaVar && (
+        <>
+          <AiAsistan yeniListe />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            {KATEGORILER.map((k) => (
+              <button
+                key={k.ad}
+                onClick={() => aramaYap(k.terim)}
+                className={`rounded-3xl p-4 bg-gradient-to-br ${k.grad} text-white text-left shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition`}
+              >
+                <div className="text-2xl">{k.emoji}</div>
+                <div className="font-bold text-sm mt-2 leading-tight">{k.ad}</div>
+              </button>
+            ))}
+          </div>
+          <ReklamSerit konum="anasayfa" />
+        </>
+      )}
+
+      {/* Sana yakın marketler */}
+      {store.konumDurumu === 'tamam' && store.yakinMarketler.length > 0 && !aramaVar && (
+        <section className="space-y-2">
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-primary" />
+            <h2 className="font-bold text-sm">Sana yakın marketler</h2>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible">
+            {store.yakinMarketler.slice(0, 12).map((m) => (
+              <div key={m.id} className="shrink-0 bg-base-100 border border-base-300 rounded-2xl p-2.5 min-w-[130px] md:min-w-0">
+                <MarketBadge market={m.market} size="sm" />
+                <div className="text-xs mt-1 line-clamp-1">{m.sube}</div>
+                {m.mesafe != null && <div className="text-[11px] text-base-content/50">{formatMesafe(m.mesafe)}</div>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Kapsanan marketler */}
+      {!aramaVar && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-base-content/50">Karşılaştırılan marketler:</span>
+          {KAPSANAN.map((m) => <MarketBadge key={m} market={m} size="sm" />)}
+        </div>
+      )}
+
+      {/* Konum kapalı uyarısı */}
+      {store.konumDurumu !== 'tamam' && store.konumDurumu !== 'isteniyor' && (
+        <div className="alert bg-warning/15 border border-warning/30 text-sm flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2"><MapPin size={16} className="text-warning" /> Konum kapalı — sonuçlar tüm Türkiye'den geliyor.</span>
+          <button onClick={konumIste} className="btn btn-warning btn-xs">Konumu aç</button>
+        </div>
+      )}
+
+      {yukleniyor && (
+        <div className="flex justify-center py-10 text-base-content/50"><Loader2 className="animate-spin" /></div>
+      )}
+      {hata && <div className="alert alert-error text-sm">{hata}</div>}
+      {bilgi && !yukleniyor && <div className="alert text-sm">{bilgi}</div>}
+
+      {/* SONUÇLAR */}
+      {!yukleniyor && sonuclar.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="font-semibold">"{aranan}" için sonuçlar</h2>
+            <span className="text-xs text-base-content/50">{gosterilen.length} / {sonuclar.length} ürün</span>
+          </div>
+
+          {/* Sıralama + market filtresi */}
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            <span className="flex items-center gap-1 text-base-content/50"><SlidersHorizontal size={14} /> Sırala:</span>
+            <div className="join">
+              <button onClick={() => setSiralama('ucuz')} className={`join-item btn btn-xs ${siralama === 'ucuz' ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>En ucuz</button>
+              <button onClick={() => setSiralama('fark')} className={`join-item btn btn-xs ${siralama === 'fark' ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>En çok fark</button>
+            </div>
+            {marketler.length > 1 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button onClick={() => setMarketFiltre(null)} className={`btn btn-xs ${!marketFiltre ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>Tümü</button>
+                {marketler.map((m) => (
+                  <button key={m} onClick={() => setMarketFiltre(m)} className={`rounded-md ${marketFiltre === m ? 'ring-2 ring-primary ring-offset-1' : ''}`}>
+                    <MarketBadge market={m} size="sm" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Izgara: mobil tek sütun, masaüstü çok sütun */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {gosterilen.map((u) => (
+              <ProductCard key={u.id} urun={u} onClick={() => onSelect(u)} />
+            ))}
+          </div>
+          <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_LIST} className="mt-1" />
+
+          {gosterilen.length === 0 && (
+            <div className="text-sm text-base-content/50 text-center py-6">Bu markete göre ürün yok. Filtreyi kaldır ya da başka market seç.</div>
+          )}
+        </div>
+      )}
+
+      {/* EN ÇOK ARANANLAR */}
+      {!aramaVar && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Flame size={18} className="text-secondary" />
+            <h2 className="font-bold">En çok aranan ürünler</h2>
+          </div>
+          <p className="text-xs text-base-content/50 -mt-1">Dokun, o ürünün en ucuz olduğu marketi anında gör.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {POPULER.map((p) => (
+              <button
+                key={p.terim}
+                onClick={() => aramaYap(p.terim)}
+                className="bg-base-100 rounded-2xl border border-base-300 p-3 text-left hover:border-primary/50 hover:shadow-sm active:scale-[0.98] transition flex items-center gap-3"
+              >
+                <span className="text-2xl">{p.emoji}</span>
+                <span className="min-w-0">
+                  <span className="block font-medium leading-tight truncate">{p.ad}</span>
+                  <span className="block text-[11px] text-base-content/50 truncate">{p.kat}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_LIST} className="mt-2" />
+        </section>
+      )}
+    </div>
+  )
+}

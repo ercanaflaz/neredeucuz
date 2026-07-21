@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nerdeucuz — İş Modeli & Yol Haritası</title>
+<style>
+  :root{
+    --green:#16a34a; --green-d:#166534; --orange:#f97316; --ink:#0f172a;
+    --muted:#64748b; --line:#e5e7eb; --bg:#f6f7f6; --card:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
+  header.hero{background:linear-gradient(135deg,var(--green),var(--green-d));color:#fff;
+    padding:48px 20px;margin-bottom:32px}
+  header.hero .inner{max-width:900px;margin:0 auto}
+  .brand{font-weight:800;font-size:15px;letter-spacing:.3px;opacity:.9}
+  .brand .o{color:#ffd8b0}
+  h1{font-size:30px;margin:8px 0 6px;font-weight:800;line-height:1.2}
+  .sub{opacity:.92;max-width:640px}
+  .meta{margin-top:16px;font-size:13px;opacity:.85}
+  h2{font-size:21px;margin:38px 0 12px;padding-top:10px;border-top:3px solid var(--green);
+    display:inline-block}
+  h3{font-size:16px;margin:22px 0 6px;color:var(--green-d)}
+  p{margin:10px 0}
+  .lead{font-size:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:14px 0}
+  .grid{display:grid;gap:14px}
+  .grid.two{grid-template-columns:1fr 1fr}
+  .grid.three{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:680px){.grid.two,.grid.three{grid-template-columns:1fr}}
+  .pill{display:inline-block;background:#eafaf0;color:var(--green-d);border:1px solid #bbe8cb;
+    border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;margin:2px 4px 2px 0}
+  .pill.o{background:#fff2e8;color:#b45309;border-color:#fdd3ad}
+  .pill.g{background:#f1f5f9;color:#475569;border-color:#e2e8f0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;background:#fff;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0fdf4;color:var(--green-d);font-weight:700;font-size:13px}
+  tr:last-child td{border-bottom:none}
+  .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .step{display:flex;gap:14px;align-items:flex-start;margin:12px 0}
+  .step .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;
+    font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .phase{border-left:3px solid var(--line);padding:2px 0 2px 18px;margin:0 0 4px 8px}
+  .phase.on{border-color:var(--green)}
+  .phase .t{font-weight:700}
+  .phase .s{font-size:13px;color:var(--muted)}
+  .ok{color:var(--green);font-weight:700}
+  .warn{color:#b45309;font-weight:700}
+  .muted{color:var(--muted)}
+  ul{margin:8px 0;padding-left:20px}
+  li{margin:5px 0}
+  .callout{background:#fff7ed;border:1px solid #fdd3ad;border-radius:14px;padding:16px 18px;margin:16px 0}
+  .callout.g{background:#f0fdf4;border-color:#bbe8cb}
+  .kpi{font-size:26px;font-weight:800;color:var(--green-d)}
+  .foot{margin-top:40px;font-size:12px;color:var(--muted);text-align:center}
+  @media print{body{background:#fff}.card,table{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="inner">
+    <div class="brand">nerde<span class="o">ucuz</span> · iş modeli & yol haritası</div>
+    <h1>En ucuzu bul, sonra kapına getir</h1>
+    <div class="sub">Fiyat karşılaştırma beynini teslimat operasyonuyla birleştiren iki katmanlı bir model. Amaç: kullanıcıya hem tasarruf ettirmek hem "al-getir" kolaylığı sunmak — stok sorununa düşmeden.</div>
+    <div class="meta">Hazırlanış: 21 Temmuz 2026 · Durum: fiyat katmanı çalışır MVP, teslimat katmanı planlama</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="callout g">
+    <b>Tek cümlelik özet:</b> nerdeucuz, resmî fiyat verisiyle "en ucuz sepet nerede" sorusunu cevaplayan bir <b>fiyat beyni</b>; ikinci aşamada bu beynin üstüne <b>insan alışverişçi</b> ile "sipariş ver, biz en ucuzdan alıp getirelim" hizmetini ekler. Stok belirsizliğini veri değil, satın alma anında insan çözer.
+  </div>
+
+  <h2>1. Problem & fırsat</h2>
+  <p class="lead">Enflasyon ortamında tüketici aynı ürünü hangi markette daha ucuz alacağını bilmiyor; bilse bile 3–4 markete tek tek gitmek zahmetli. İki gerçek ihtiyaç var:</p>
+  <div class="grid two">
+    <div class="card"><h3>Tasarruf</h3><p>"Bu sepeti en ucuza nereden alırım?" — fiyatlar market ve bölgeye göre ciddi değişiyor. Doğru yönlendirme haftalık gerçek para kazandırır.</p></div>
+    <div class="card"><h3>Kolaylık</h3><p>"En ucuzu buldum ama gitmeye vaktim yok." — al-getir hizmeti, tasarrufu zahmete girmeden almayı sağlar. Asıl gelir potansiyeli burada.</p></div>
+  </div>
+
+  <h2>2. Çözüm: iki katmanlı mimari</h2>
+  <p>Tek bir veri kaynağının her şeyi yapmasını beklemek hatanın kaynağı. Model iki bağımsız katmandan oluşur:</p>
+  <div class="grid two">
+    <div class="card">
+      <span class="pill">KATMAN 1</span>
+      <h3>Fiyat beyni</h3>
+      <p><b>Kaynak:</b> marketfiyati.org.tr (TÜBİTAK) — resmî, ücretsiz, kimlik doğrulaması yok. 7 zincir, ~50.000 ürün.</p>
+      <p><b>Ne yapar:</b> barkod/isimle ara, marketlere göre en ucuz, konuma göre bölgesel fiyat, sepet optimizasyonu.</p>
+      <p><b>Durum:</b> <span class="ok">çalışır MVP kuruldu.</span></p>
+    </div>
+    <div class="card">
+      <span class="pill o">KATMAN 2</span>
+      <h3>Teslimat operasyonu</h3>
+      <p><b>Yöntem:</b> insan alışverişçi (personal shopper). Kurye markete gidip <b>rafta teyit ederek</b> alır.</p>
+      <p><b>Ne çözer:</b> "sipariş geçildi ama ürün yok" sorununu — stok kontrolünü veri değil, insan yapar.</p>
+      <p><b>Durum:</b> <span class="warn">planlama / pilot.</span></p>
+    </div>
+  </div>
+  <div class="callout">
+    <b>Neden marketfiyati stok için değil, fiyat için?</b> marketfiyati sadece resmî <b>fiyat</b> bildirimidir (rafta var mı bilgisi yoktur). Bu yüzden fiyat katmanında mükemmel, stok katmanında kullanışsızdır. Stok sorununu <b>alışverişçi satın alma anında</b> çözer — böylece hiçbir kaynağın veremediği "canlı stok"a ihtiyaç kalmaz.
+  </div>
+
+  <h2>3. Nasıl çalışır (kullanıcı akışı)</h2>
+  <div class="step"><div class="n">1</div><div><b>Ara / barkod tara.</b> Kullanıcı ürünleri arar, uygulama en ucuz marketi ve fiyatı gösterir.</div></div>
+  <div class="step"><div class="n">2</div><div><b>Sepet oluştur.</b> Uygulama "tüm sepet en ucuz şu markette" veya "şöyle bölersen bu kadar tasarruf" der.</div></div>
+  <div class="step"><div class="n">3</div><div><b>Sipariş ver.</b> Kullanıcı adresini girer, hizmet ücretini görür, onaylar.</div></div>
+  <div class="step"><div class="n">4</div><div><b>Alışverişçi toplar.</b> Kurye en ucuz markete gider, ürünleri <b>rafta teyit ederek</b> alır. Ürün yoksa uygulamadan muadil önerir ya da o kalemi iade eder.</div></div>
+  <div class="step"><div class="n">5</div><div><b>Teslimat & ödeme.</b> Kapına getirir. Ödeme: ürün tutarı + hizmet/transfer ücreti. Fiş/fatura paylaşılır (şeffaflık).</div></div>
+
+  <h2>4. Gelir modeli</h2>
+  <p>Aşamalı olarak birden çok gelir kanalı. Erken aşamada reklam/affiliate, olgunlukta teslimat komisyonu asıl motor olur.</p>
+  <table>
+    <tr><th>Gelir kanalı</th><th>Aşama</th><th>Açıklama</th></tr>
+    <tr><td><b>Reklam</b> (AdSense/AdMob)</td><td>1 — hemen</td><td>Fiyat karşılaştırma trafiğinden. Düşük ama sıfır operasyon.</td></tr>
+    <tr><td><b>Affiliate / yönlendirme</b></td><td>1–2</td><td>Online-satışı olan zincirlere (Migros, CarrefourSA) yönlendirmeden komisyon (varsa program).</td></tr>
+    <tr><td><b>Hizmet / transfer ücreti</b></td><td>2 — asıl</td><td>Her teslimat siparişinden sabit + oransal ücret. Ana gelir.</td></tr>
+    <tr><td><b>Teslimat komisyonu</b></td><td>2</td><td>Sepet tutarı üzerinden %. Büyük sepetlerde ölçeklenir.</td></tr>
+    <tr><td><b>Öncelik / abonelik</b></td><td>3</td><td>Ücretsiz teslimat / hızlı teslim için aylık üyelik (Getir/Getir+ mantığı).</td></tr>
+    <tr><td><b>Yerel market reklamı</b></td><td>3</td><td>Bölgesel marketlerin "öne çık" tanıtımı (kullanıcı dostu kalmak şartıyla).</td></tr>
+  </table>
+
+  <h2>5. Değer önerisi: tasarruf, ücreti karşılıyor</h2>
+  <p>En güçlü koz bu: <b>en ucuz marketten aldığın için müşteri üründe zaten kazanıyor;</b> bu kazanç teslimat ücretini büyük ölçüde karşılıyor. Basit bir örnek (temsilî):</p>
+  <table>
+    <tr><th>Kalem</th><th class="num">Tutar</th><th>Not</th></tr>
+    <tr><td>Sepet — en pahalı markette</td><td class="num">880 ₺</td><td>tek markette gezmeden</td></tr>
+    <tr><td>Sepet — nerdeucuz en ucuz yönlendirmesiyle</td><td class="num">760 ₺</td><td><span class="ok">120 ₺ tasarruf</span></td></tr>
+    <tr><td>Hizmet + transfer ücreti</td><td class="num">+90 ₺</td><td>senin gelirin</td></tr>
+    <tr><td><b>Müşterinin toplam ödediği</b></td><td class="num"><b>850 ₺</b></td><td>yine de en pahalı marketten <span class="ok">ucuz</span> — üstelik kapısında</td></tr>
+  </table>
+  <p class="muted">Yani doğru mesaj: "Kapına getiriyoruz <b>ve</b> yine de tek başına gitmekten pahalı değil." Rakip q-commerce'lerde ürünler zaten zamlı; sen en ucuzdan alıp getirdiğin için bu avantaj sana özel.</p>
+
+  <h2>6. Birim ekonomi (sipariş başı, temsilî)</h2>
+  <div class="grid three">
+    <div class="card"><div class="muted">Ortalama sepet</div><div class="kpi">750 ₺</div></div>
+    <div class="card"><div class="muted">Hizmet + transfer geliri</div><div class="kpi">~90 ₺</div></div>
+    <div class="card"><div class="muted">Kurye + işlem maliyeti</div><div class="kpi">~60 ₺</div></div>
+  </div>
+  <p>Sipariş başı brüt katkı ≈ <b>30 ₺</b>. Günde 100 sipariş → ~3.000 ₺/gün brüt katkı. Kârlılık; sipariş yoğunluğu (kurye başına saatte sipariş), sepet büyüklüğü ve bölge sıklığına bağlı. <span class="muted">Rakamlar pilotta gerçek verilerle netleşecek; buradakiler yön göstericidir.</span></p>
+
+  <h2>7. Teslimat operasyonu detayı</h2>
+  <div class="grid two">
+    <div class="card"><h3>Kurye modeli</h3><p>Başlangıçta esnek/part-time alışverişçi (kendi aracı/motoru). Sabit maaş yerine sipariş başı ödeme + bahşiş. Tek bölgeyle başla, yoğunluk artınca büyüt.</p></div>
+    <div class="card"><h3>Stok / yoklama politikası</h3><p>Kurye rafta bulamazsa: (a) uygulamadan muadil önerir, müşteri onaylar; (b) reddederse o kalem iade. Müşteri asla "olmayan ürün" için ödemez.</p></div>
+    <div class="card"><h3>Ödeme akışı</h3><p>Ürün tutarı kurye tarafından ödenir (ön yüklemeli kart), müşteri uygulamada toplam + hizmet öder. Fiş fotoğrafı ile şeffaflık.</p></div>
+    <div class="card"><h3>Kalite & güven</h3><p>Son kullanma tarihi kontrolü, soğuk zincir için termal çanta, teslimat fotoğrafı, puanlama. İlk siparişte güven kritik.</p></div>
+  </div>
+
+  <h2>8. Pilot planı (0 → 1)</h2>
+  <div class="step"><div class="n">1</div><div><b>Tek bölge seç.</b> Nüfusu yoğun, market çeşidi bol bir ilçe/mahalle (örn. senin bölgen). Yarıçap dar tut.</div></div>
+  <div class="step"><div class="n">2</div><div><b>Sınırlı market + sınırlı saat.</b> 3–4 zincir, günün belirli saatlerinde teslimat. Kontrollü başla.</div></div>
+  <div class="step"><div class="n">3</div><div><b>1–2 kurye ile 20–50 sipariş test et.</b> Gerçek birim ekonomi, stok-bulunamama oranı, teslim süresi ölç.</div></div>
+  <div class="step"><div class="n">4</div><div><b>Öğren & genişlet.</b> Rakamlar tutuyorsa bölge/saat/kurye ekle. Tutmuyorsa fiyatlandırmayı ayarla.</div></div>
+
+  <h2>9. Rakipler & farkımız</h2>
+  <table>
+    <tr><th>Oyuncu</th><th>Ne yapar</th><th>Bizim farkımız</th></tr>
+    <tr><td>Getir / Banabi</td><td>Kendi deposundan hızlı teslim</td><td>Biz market rafından, <b>en ucuz</b> zincirden alırız — ürün zamlı değil</td></tr>
+    <tr><td>Migros Hemen</td><td>Tek zincir (Migros) teslim</td><td>Biz <b>çoklu zincir</b> karşılaştırıp en ucuzdan alırız</td></tr>
+    <tr><td>marketfiyati / Cimri</td><td>Sadece fiyat gösterir</td><td>Biz fiyatı gösterir <b>ve getiririz</b></td></tr>
+  </table>
+  <p><b>Tek cümlelik konumlama:</b> "Çoklu markette en ucuzu bulan <b>ve</b> kapına getiren tek uygulama."</p>
+
+  <h2>10. Yasal & uyum (kontrol listesi)</h2>
+  <ul>
+    <li><b>marketfiyati veri kullanımı:</b> ticari kullanım + reklam gelirinin şartlarını yazılı netleştir (kullanım koşulları / başvuru).</li>
+    <li><b>Mesafeli satış / aracılık:</b> "senin adına satın alan aracı" modelinin sözleşme ve fatura düzenini kur (sen ürünü satmıyorsun, alışveriş hizmeti veriyorsun).</li>
+    <li><b>KVKK:</b> adres, konum, sipariş verisi — aydınlatma metni + açık rıza + saklama politikası.</li>
+    <li><b>Kurye/istihdam:</b> part-time/esnek çalışan statüsü, sigorta, sorumluluk.</li>
+    <li><b>Gıda güvenliği:</b> soğuk zincir, SKT sorumluluğu, iade/şikâyet süreci.</li>
+    <li class="muted">Not: Bunlar için bir avukat/mali müşavirle çalışılmalı; burada yön veriliyor, hukuki tavsiye değil.</li>
+  </ul>
+
+  <h2>11. Riskler & azaltma</h2>
+  <table>
+    <tr><th>Risk</th><th>Azaltma</th></tr>
+    <tr><td>Stokta bulunamama</td><td>Muadil/iade politikası; sık tükenen ürünleri veriyle öğrenip önceden uyar</td></tr>
+    <tr><td>Kurye yoğunluğu / maliyet</td><td>Dar bölge + sipariş kümeleme (aynı markete birden çok sipariş)</td></tr>
+    <tr><td>Fiyat gecikmesi (marketfiyati)</td><td>Fiyatı "tahminî" sun, kesin tutar kasada; fark küçükse otomatik onay</td></tr>
+    <tr><td>marketfiyati veri izni</td><td>Şartları erken netleştir; gerekirse alternatif/anlaşmalı kaynak</td></tr>
+    <tr><td>Rakip fiyat savaşı</td><td>Farkı "en ucuz zincir" avantajında tut; sadakat/abonelik ile bağla</td></tr>
+  </table>
+
+  <h2>12. Teknik yol haritası</h2>
+  <div class="phase on"><div class="t">Aşama 1 — Fiyat beyni <span class="ok">(tamam)</span></div><div class="s">Arama, barkod, bölgesel en ucuz, sepet optimizasyonu, favoriler, fiyat alarmı, PWA, web+mobil tasarım.</div></div>
+  <div class="phase"><div class="t">Aşama 2 — Sipariş & teslimat çekirdeği</div><div class="s">Sepet → adres → sipariş kaydı (Supabase), sipariş durumu, temel ödeme, kullanıcı bildirimi.</div></div>
+  <div class="phase"><div class="t">Aşama 3 — Kurye paneli</div><div class="s">Alışverişçi uygulaması: sipariş listesi, market içi toplama, muadil/iade, fiş fotoğrafı, teslim onayı.</div></div>
+  <div class="phase"><div class="t">Aşama 4 — Ödeme & operasyon</div><div class="s">Online ödeme entegrasyonu, kurye ön yüklemeli kart, mutabakat, faturalandırma.</div></div>
+  <div class="phase"><div class="t">Aşama 5 — Ölçek</div><div class="s">Çok bölge, sipariş kümeleme, abonelik, fiyat geçmişi & fırsat akışı, gelişmiş bildirim (Web Push).</div></div>
+
+  <h2>13. Hemen atılacak adımlar</h2>
+  <ul>
+    <li><span class="pill g">1</span> marketfiyati ticari kullanım şartlarını netleştir (paralelde geliştirmeye devam).</li>
+    <li><span class="pill g">2</span> Pilot bölgeyi ve başlangıç market listesini seç.</li>
+    <li><span class="pill g">3</span> Uygulamaya "sipariş ver" akışını (sepet → adres → onay) prototip ekle.</li>
+    <li><span class="pill g">4</span> 1 kurye + elle koordinasyonla 10–20 gerçek sipariş dene (yazılım tam bitmeden manuel test).</li>
+    <li><span class="pill g">5</span> Birim ekonomiyi gerçek veriyle güncelle, fiyatlandırmayı ayarla.</li>
+  </ul>
+
+  <div class="callout g">
+    <b>Sonuç:</b> Fikrin sağlam. Kilit karar, teslimatı <b>veri kazımaya değil insan alışverişçiye</b> dayandırmak — böylece "sipariş var, ürün yok" sorunu ortadan kalkıyor ve marketfiyati fiyat beyni olarak tüm değerini koruyor. Zaten kurulu olan fiyat katmanı, bu modelin en pahalı ve en zor parçasıydı; teslimat, üstüne eklenen kontrollü bir operasyon.
+  </div>
+
+  <div class="foot">nerdeucuz — iş modeli taslağı · 21 Temmuz 2026 · rakamlar temsilîdir, pilotla netleşecek</div>
+</div>
+</body>
+</html>
