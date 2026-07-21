@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useEffect, useState } from 'react'
-import { Search, Heart, User, ShoppingCart, Shield } from 'lucide-react'
+import { Home as HomeIcon, Search, Heart, User, ShoppingCart, Shield } from 'lucide-react'
 import { subscribeAuth, getAuth } from './lib/auth'
 import { subscribe, getSnapshot, favorileriYukle, alarmlariYukle, sepetiYukle, konumBaslat } from './lib/store'
 import Home from './pages/Home'
@@ -48,7 +48,8 @@ export default function App() {
   const anaSayfa = !secili && route === '/'
 
   const nav = [
-    { key: 'ara', href: '#/', icon: Search, label: 'Ara', active: !secili && route === '/' },
+    { key: 'ana', href: '#/', icon: HomeIcon, label: 'Ana Sayfa', active: !secili && route === '/' },
+    { key: 'ara', href: '#/', icon: Search, label: 'Ara', active: false },
     { key: 'sepet', href: '#/sepet', icon: ShoppingCart, label: 'Sepet', badge: sepetAdet, active: !secili && route.startsWith('/sepet') },
     { key: 'fav', href: '#/favoriler', icon: Heart, label: 'Favoriler', active: !secili && route.startsWith('/favoriler') },
     { key: 'giris', href: '#/giris', icon: User, label: auth.user ? 'Hesap' : 'Giriş', active: !secili && route.startsWith('/giris') },
