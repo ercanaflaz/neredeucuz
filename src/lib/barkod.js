@@ -1,9 +1,21 @@
 // Barkodu dış kaynaklardan tanıma (marketfiyati'de bulunamadığında).
-// Open Food Facts: ücretsiz, anahtarsız, CORS açık. Türk ürünlerinde kapsama sınırlı.
+// 1) barkodoku (kendi /api/barkod fonksiyonumuz — Türk ürünlerinde iyi, anahtar sunucuda gizli)
+// 2) Open Food Facts (ücretsiz yedek; daha çok uluslararası/gıda)
 
 export async function barkodCoz(kod) {
   const b = String(kod || '').replace(/\D/g, '')
   if (b.length < 8) return null
+
+  // 1) barkodoku
+  try {
+    const r = await fetch(`/api/barkod/${b}`)
+    if (r.ok) {
+      const d = await r.json()
+      if (d?.bulundu && d.ad) return { ad: d.ad, marka: null, kaynak: 'barkodoku' }
+    }
+  } catch { /* erişilemedi */ }
+
+  // 2) Open Food Facts
   try {
     const r = await fetch(
       `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(b)}.json?fields=product_name,product_name_tr,generic_name,brands`,
@@ -20,5 +32,6 @@ export async function barkodCoz(kod) {
       }
     }
   } catch { /* erişilemedi */ }
+
   return null
 }
