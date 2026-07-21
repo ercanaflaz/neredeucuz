@@ -41,12 +41,14 @@ export default function Home({ onSelect }) {
   const [aktifKelime, setAktifKelime] = useState('')
   const [siralama, setSiralama] = useState('ucuz') // ucuz | fark
   const [marketFiltre, setMarketFiltre] = useState(null)
+  const [sadeceKampanya, setSadeceKampanya] = useState(false)
+  const [barkodUrunId, setBarkodUrunId] = useState(null) // barkodla taranan ürün (başta gösterilir)
 
   async function aramaYap(kelime) {
     const k = (kelime ?? q).trim()
     if (!k) return
     const konum = getSnapshot().konum
-    setQ(k); setAktifKelime(k); setMarketFiltre(null)
+    setQ(k); setAktifKelime(k); setMarketFiltre(null); setSadeceKampanya(false); setBarkodUrunId(null)
     setYukleniyor(true); setHata(null); setBilgi(''); setAranan(k)
     aramaLogla(k)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -65,18 +67,42 @@ export default function Home({ onSelect }) {
   async function barkodOkundu(kod) {
     setTarayici(false)
     const konum = getSnapshot().konum
-    setYukleniyor(true); setHata(null); setBilgi(''); setQ(kod); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null)
+    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setSadeceKampanya(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     try {
       const res = await searchByBarcode(kod, konum)
       const list = normalize(res, konum)
-      setSonuclar(list)
-      if (list.length === 1) onSelect(list[0])
-      else if (!list.length) setBilgi(konum ? `"${kod}" barkodlu ürün bölgende bulunamadı.` : `"${kod}" barkodu bulunamadı. İsimle aramayı dene.`)
+      if (list.length) {
+        const urun = list[0]
+        setAranan(urun.title)
+        setBarkodUrunId(urun.id)
+        // Benzer ürünler (aynı ad/kategori) — kampanyalılar da burada görünür.
+        let benzer = []
+        try {
+          const anahtar = benzerAnahtar(urun)
+          if (anahtar) benzer = normalize(await searchByKeyword(anahtar, konum), konum)
+        } catch { /* benzer bulunamadı — sorun değil */ }
+        setSonuclar([urun, ...benzer.filter((b) => b.id !== urun.id)])
+      } else {
+        setBarkodUrunId(null)
+        setSonuclar([])
+        setBilgi(konum ? `Bu barkod (${kod}) bölgendeki fiyat verisinde bulunamadı. Ürün adıyla aramayı dene.` : `"${kod}" barkodu bulunamadı. İsimle aramayı dene.`)
+      }
     } catch {
       setHata('Barkod sorgulanamadı. Bağlantını kontrol et.')
     } finally {
       setYukleniyor(false)
     }
+  }
+
+  // Ürün adından benzer arama anahtarı üret (marka + boyut eklerini at, 2 kelime).
+  function benzerAnahtar(urun) {
+    let t = String(urun.title || '').toLocaleLowerCase('tr')
+    t = t.replace(/\d+([.,]\d+)?\s*(kg|gr|g|ml|lt|l|cl|adet|yaprak|rulo|x)\b/gi, ' ')
+    const m = String(urun.brand || '').toLocaleLowerCase('tr')
+    let kelimeler = t.split(/\s+/).filter((w) => w.length > 1)
+    if (m) kelimeler = kelimeler.filter((w) => !m.includes(w))
+    return kelimeler.slice(0, 2).join(' ').trim()
   }
 
   function yaricapSec(km) {
@@ -87,7 +113,7 @@ export default function Home({ onSelect }) {
   // Aramayı temizle → ana sayfa görünümüne dön.
   function aramayiTemizle() {
     setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([])
-    setHata(null); setBilgi(''); setMarketFiltre(null)
+    setHata(null); setBilgi(''); setMarketFiltre(null); setSadeceKampanya(false); setBarkodUrunId(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -102,13 +128,16 @@ export default function Home({ onSelect }) {
   const gosterilen = useMemo(() => {
     let list = sonuclar
     if (marketFiltre) list = list.filter((u) => u.depots.some((d) => marka(d.market).ad === marketFiltre))
+    if (sadeceKampanya) list = list.filter((u) => u.kampanyali)
     if (siralama === 'fark') {
       list = [...list].sort((a, b) => ((b.maxPrice - b.minPrice) || 0) - ((a.maxPrice - a.minPrice) || 0))
     } else {
       list = [...list].sort((a, b) => (a.minPrice ?? 1e9) - (b.minPrice ?? 1e9))
     }
     return list
-  }, [sonuclar, marketFiltre, siralama])
+  }, [sonuclar, marketFiltre, siralama, sadeceKampanya])
+
+  const kampanyaSayisi = useMemo(() => sonuclar.filter((u) => u.kampanyali).length, [sonuclar])
 
   const aramaVar = aranan || sonuclar.length || yukleniyor
 
@@ -266,7 +295,7 @@ export default function Home({ onSelect }) {
       {!yukleniyor && sonuclar.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="font-semibold">"{aranan}" için sonuçlar</h2>
+            <h2 className="font-semibold">{barkodUrunId ? 'Okuttuğun ürün ve benzerleri' : `"${aranan}" için sonuçlar`}</h2>
             <span className="text-xs text-base-content/50">{gosterilen.length} / {sonuclar.length} ürün</span>
           </div>
 
@@ -277,6 +306,11 @@ export default function Home({ onSelect }) {
               <button onClick={() => setSiralama('ucuz')} className={`join-item btn btn-xs ${siralama === 'ucuz' ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>En ucuz</button>
               <button onClick={() => setSiralama('fark')} className={`join-item btn btn-xs ${siralama === 'fark' ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>En çok fark</button>
             </div>
+            {kampanyaSayisi > 0 && (
+              <button onClick={() => setSadeceKampanya((v) => !v)} className={`btn btn-xs gap-1 ${sadeceKampanya ? 'btn-secondary' : 'btn-ghost bg-base-100 border-base-300'}`}>
+                🏷️ Kampanyalı ({kampanyaSayisi})
+              </button>
+            )}
             {marketler.length > 1 && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button onClick={() => setMarketFiltre(null)} className={`btn btn-xs ${!marketFiltre ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>Tümü</button>

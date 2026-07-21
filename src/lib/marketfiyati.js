@@ -157,6 +157,9 @@ export function normalize(apiResponse, loc) {
       depotName: d.depotName,
       price: d.price,
       unitPrice: d.unitPrice,
+      indirim: Number(d.discount) || 0,
+      indirimOran: Number(d.discountRatio) || 0,
+      kampanya: d.promotionText || null,
       latitude: d.latitude,
       longitude: d.longitude,
       indexTime: d.indexTime,
@@ -192,6 +195,8 @@ export function normalize(apiResponse, loc) {
       birimFiyat: hesapBF ?? (apiBF.length ? Math.min(...apiBF) : null),
       birimAdi: boyut?.baz || (item.refinedQuantityUnit || null),
       paketMiktar: boyut?.miktar ?? null,
+      // Kampanya: herhangi bir markette indirim/promosyon var mı?
+      kampanyali: depots.some((d) => d.indirim > 0 || d.kampanya),
       marketCount: depots.length,
     }
   })

@@ -19,8 +19,9 @@ export default function ProductCard({ urun, onClick }) {
       <div className="flex-1 min-w-0">
         <div className="font-medium leading-tight line-clamp-2">{urun.title}</div>
         <div className="text-xs text-base-content/50 mt-0.5">{urun.brand}</div>
-        <div className="text-xs text-base-content/50 mt-1">
-          {urun.marketCount} markette karşılaştırıldı
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <span className="text-xs text-base-content/50">{urun.marketCount} markette karşılaştırıldı</span>
+          {urun.kampanyali && <span className="text-[10px] font-semibold bg-secondary/15 text-secondary rounded px-1.5 py-0.5">🏷️ kampanya</span>}
         </div>
       </div>
       <div className="text-right shrink-0 flex flex-col items-end gap-1">
