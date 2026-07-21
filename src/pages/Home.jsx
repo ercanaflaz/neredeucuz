@@ -6,6 +6,7 @@ import MarketBadge from '../components/MarketBadge'
 import { POPULER } from '../data/populer'
 import { marka } from '../lib/markets'
 import { searchByKeyword, searchByBarcode, normalize } from '../lib/marketfiyati'
+import { barkodCoz } from '../lib/barkod'
 import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla } from '../lib/store'
 import { ReklamSerit } from '../components/ReklamRail'
 import AiAsistan from '../components/AiAsistan'
@@ -83,10 +84,28 @@ export default function Home({ onSelect }) {
           if (anahtar) benzer = normalize(await searchByKeyword(anahtar, konum), konum)
         } catch { /* benzer bulunamadı — sorun değil */ }
         setSonuclar([urun, ...benzer.filter((b) => b.id !== urun.id)])
+        return
+      }
+      // marketfiyati'de barkod yok → dış kaynaktan ürünü tanı.
+      setBarkodUrunId(null)
+      const disUrun = await barkodCoz(kod)
+      if (disUrun?.ad) {
+        const ad = disUrun.marka ? `${disUrun.marka} ${disUrun.ad}` : disUrun.ad
+        setAranan(disUrun.ad)
+        let benzer = []
+        try { benzer = normalize(await searchByKeyword(disUrun.ad, konum), konum) } catch { /* yok */ }
+        if (!benzer.length && disUrun.marka) {
+          try { benzer = normalize(await searchByKeyword(ad, konum), konum) } catch { /* yok */ }
+        }
+        setSonuclar(benzer)
+        setBilgi(
+          benzer.length
+            ? `📷 Okuttuğun ürün: ${disUrun.ad}${disUrun.marka ? ` (${disUrun.marka})` : ''} — kaynak: ${disUrun.kaynak}. Bu barkodla eşleşen fiyat yoktu; aşağıda benzer ürünleri getirdim.`
+            : `📷 Okuttuğun ürün: ${disUrun.ad}${disUrun.marka ? ` (${disUrun.marka})` : ''} — kaynak: ${disUrun.kaynak}. Ama bu ürün fiyat verisinde bulunamadı.`,
+        )
       } else {
-        setBarkodUrunId(null)
         setSonuclar([])
-        setBilgi(konum ? `Bu barkod (${kod}) bölgendeki fiyat verisinde bulunamadı. Ürün adıyla aramayı dene.` : `"${kod}" barkodu bulunamadı. İsimle aramayı dene.`)
+        setBilgi(`Bu barkod (${kod}) fiyat verisinde ve barkod veritabanlarında bulunamadı. Ürün adıyla aramayı dene.`)
       }
     } catch {
       setHata('Barkod sorgulanamadı. Bağlantını kontrol et.')
