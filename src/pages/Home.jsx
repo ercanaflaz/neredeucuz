@@ -1,5 +1,5 @@
 import { useState, useMemo, useSyncExternalStore, lazy, Suspense } from 'react'
-import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal } from 'lucide-react'
+import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import AdSlot from '../components/AdSlot'
 import MarketBadge from '../components/MarketBadge'
@@ -82,6 +82,13 @@ export default function Home({ onSelect }) {
   function yaricapSec(km) {
     yaricapDegistir(km)
     if (aktifKelime) setTimeout(() => aramaYap(aktifKelime), 0)
+  }
+
+  // Aramayı temizle → ana sayfa görünümüne dön.
+  function aramayiTemizle() {
+    setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([])
+    setHata(null); setBilgi(''); setMarketFiltre(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // Sonuçlarda bulunan marketler (filtre çipleri için)
@@ -186,6 +193,13 @@ export default function Home({ onSelect }) {
           </div>
         </div>
       </div>
+
+      {/* Aramadayken: ana sayfaya dön düğmesi */}
+      {aramaVar && (
+        <button onClick={aramayiTemizle} className="btn btn-ghost btn-sm gap-1.5 self-start -mt-2 w-fit">
+          <ArrowLeft size={16} /> Ana sayfaya dön
+        </button>
+      )}
 
       {/* Bento kategoriler + AI asistan + anasayfa reklam şeridi */}
       {!aramaVar && (
