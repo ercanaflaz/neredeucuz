@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from 'react'
-import { Bot, Send, Plus, Loader2, X } from 'lucide-react'
+import { Bot, Send, Plus, Loader2, X, Store } from 'lucide-react'
 import { oneriAl } from '../lib/gemini'
 import { yerelOneri, urunOnerileri, ekstraOneriler } from '../lib/oneriler'
 import { subscribe, getSnapshot, topluEkle, yeniListeOlustur } from '../lib/akilliSepet'
@@ -17,6 +17,16 @@ const HIZLI = [
   'Bakliyat ve kışlık erzak',
   'Misafir için ikramlık',
   'Bebek bakım ürünleri',
+]
+
+// İşletme / toplu alım önerileri (restoran, kafe, pastane, büfe, otel, ofis)
+const ISLETME_HIZLI = [
+  'Restoran / lokanta malzemeleri',
+  'Kafe için malzeme listesi',
+  'Pastane / fırın malzemeleri',
+  'Büfe / kantin ürünleri',
+  'Otel / pansiyon kahvaltısı',
+  'Ofis / işyeri mutfağı',
 ]
 
 // Öneri cevabından liste adı türet ("aylık market" → "Aylık market listesi").
@@ -93,6 +103,16 @@ export default function AiAsistan({ yeniListe = false }) {
       <div className="flex flex-wrap gap-1.5">
         {HIZLI.map((h) => (
           <button key={h} onClick={() => sor(h)} disabled={soruyor} className="badge badge-outline badge-sm hover:badge-secondary cursor-pointer py-2">{h}</button>
+        ))}
+      </div>
+
+      {/* İşletme / toplu alım önerileri */}
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-base-content/50 pt-0.5">
+        <Store size={12} className="text-secondary" /> İşletme / toplu alım
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {ISLETME_HIZLI.map((h) => (
+          <button key={h} onClick={() => sor(h)} disabled={soruyor} className="badge badge-outline badge-sm hover:badge-primary hover:text-primary-content cursor-pointer py-2">{h}</button>
         ))}
       </div>
 

@@ -2,7 +2,27 @@
 // Yaygın istekleri anahtar kelimeyle eşleştirip hazır ürün listesi döndürür.
 // Kalıba uymayan özel sorularda null döner → o zaman Gemini denenir.
 
+// --- İŞLETME / HORECA setleri (restoran, kafe, pastane, büfe, otel, ofis) ---
+// Toplu alım yapan işletmeler için. Ev setlerinden ÖNCE eşleşmeli:
+// yerelOneri ilk uyan seti döndürür, o yüzden bunları başa koyuyoruz
+// (ör. "otel kahvaltısı" → otel seti, genel "kahvaltı" setine düşmez).
+const ISLETME = [
+  { anahtar: ['restoran', 'lokanta', 'restaurant', 'aşevi', 'asevi', 'kebapçı', 'kebapci'], ad: 'restoran / lokanta',
+    items: ['pirinç', 'bulgur', 'ayçiçek yağı', 'domates salçası', 'biber salçası', 'makarna', 'un', 'kuru fasulye', 'nohut', 'kırmızı mercimek', 'tuz', 'soğan', 'patates', 'tavuk', 'kıyma', 'peçete', 'streç film', 'çöp poşeti', 'bulaşık deterjanı', 'sıvı sabun'] },
+  { anahtar: ['kafe', 'cafe', 'kahve dükkan', 'kahveci', 'çay ocağı', 'cay ocagi'], ad: 'kafe',
+    items: ['türk kahvesi', 'filtre kahve', 'çay', 'süt', 'şeker', 'sıcak çikolata', 'karton bardak', 'peçete', 'kek', 'kurabiye', 'meşrubat', 'su', 'maden suyu', 'bulaşık deterjanı'] },
+  { anahtar: ['pastane', 'fırın', 'firin', 'tatlıcı', 'tatlici', 'unlu mamul', 'pasta yap', 'börekçi', 'borekci'], ad: 'pastane / fırın',
+    items: ['un', 'şeker', 'tereyağı', 'margarin', 'yumurta', 'süt', 'kabartma tozu', 'vanilya', 'kakao', 'pudra şekeri', 'bitkisel krema', 'ayçiçek yağı', 'yaş maya', 'tuz'] },
+  { anahtar: ['büfe', 'bufe', 'kantin'], ad: 'büfe / kantin',
+    items: ['meşrubat', 'su', 'maden suyu', 'cips', 'çikolata', 'gofret', 'bisküvi', 'sakız', 'ekmek', 'sosis', 'sucuk', 'kaşar peyniri', 'ketçap', 'mayonez', 'peçete', 'karton bardak'] },
+  { anahtar: ['otel', 'pansiyon', 'konaklama', 'motel', 'apart'], ad: 'otel kahvaltısı',
+    items: ['yumurta', 'beyaz peynir', 'kaşar peyniri', 'siyah zeytin', 'yeşil zeytin', 'bal', 'reçel', 'tereyağı', 'domates', 'salatalık', 'ekmek', 'çay', 'süt', 'meyve suyu', 'tahin', 'pekmez', 'kuruyemiş'] },
+  { anahtar: ['ofis', 'işyeri', 'isyeri', 'iş yeri', 'çalışan', 'şirket mutfağı'], ad: 'ofis mutfağı',
+    items: ['çay', 'türk kahvesi', 'filtre kahve', 'şeker', 'süt', 'bisküvi', 'su', 'karton bardak', 'kağıt havlu', 'çöp poşeti', 'bulaşık deterjanı', 'sıvı sabun', 'peçete'] },
+]
+
 const SETLER = [
+  ...ISLETME,
   { anahtar: ['kahvaltı', 'kahvalti', 'kahvaltılık', 'kahvaltilik'], ad: 'kahvaltı',
     items: ['yumurta', 'beyaz peynir', 'zeytin', 'bal', 'tereyağı', 'domates', 'salatalık', 'ekmek', 'çay', 'reçel'] },
   { anahtar: ['temizlik', 'deterjan', 'kağıt', 'kagit', 'kağıt ürün'], ad: 'temizlik & kağıt',
