@@ -40,23 +40,38 @@ export async function pushAboneMi() {
   } catch { return false }
 }
 
-// İzin iste + abone ol + Supabase'e kaydet. Başarılıysa true.
-export async function pushAc() {
-  if (!pushDestekli()) throw new Error('desteksiz')
-  const izin = await Notification.requestPermission()
+// İzin iste + abone ol + Supabase'e kaydet.
+// force:true → varsa eski aboneliği bırakıp SIFIRDAN abone olur (iOS'ta eski
+// önbelleğe alınmış ölü aboneliğin yeniden kullanılmasını önler).
+// HATALAR ARTIK YUTULMAZ — her adım net bir mesajla fırlatılır ki arayüzde
+// (özellikle iPhone'da) nerede takıldığı görülebilsin. Başarıda endpoint döner.
+export async function pushAc({ force = true } = {}) {
+  if (!pushDestekli()) throw new Error('Bu cihaz/tarayıcı bildirim desteklemiyor')
+
+  let izin
+  try { izin = await Notification.requestPermission() }
+  catch (e) { throw new Error('İzin isteği hatası: ' + (e?.message || e)) }
   if (izin !== 'granted') throw new Error('izin-yok')
+
   const reg = await navigator.serviceWorker.ready
   let sub = await reg.pushManager.getSubscription()
+  if (sub && force) { try { await sub.unsubscribe() } catch { /* yoksay */ } sub = null }
   if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: b64ToU8(VAPID_PUBLIC),
-    })
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: b64ToU8(VAPID_PUBLIC),
+      })
+    } catch (e) {
+      throw new Error('Abonelik (subscribe) hatası: ' + (e?.name ? e.name + ' — ' : '') + (e?.message || e))
+    }
   }
+
   const j = sub.toJSON()
   const kayit = { endpoint: j.endpoint, abonelik: j, kullanici_id: getAuth().user?.id || null, cihaz: cihaz() }
-  try { await supabase.from('push_abonelikleri').upsert(kayit, { onConflict: 'endpoint' }) } catch { /* yoksay */ }
-  return true
+  const { error } = await supabase.from('push_abonelikleri').upsert(kayit, { onConflict: 'endpoint' })
+  if (error) throw new Error('Kayıt (veritabanı) hatası: ' + (error.message || error.code || JSON.stringify(error)))
+  return j.endpoint
 }
 
 export async function pushKapat() {
