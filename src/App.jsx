@@ -10,6 +10,7 @@ import SepetSayfa from './pages/SepetSayfa'
 import Admin from './pages/Admin'
 import ReklamVer from './pages/ReklamVer'
 import LocationGate from './components/LocationGate'
+import GirisOnerisi from './components/GirisOnerisi'
 import ReklamRail from './components/ReklamRail'
 import ReklamCagrisi from './components/ReklamCagrisi'
 import AdSlot from './components/AdSlot'
@@ -118,6 +119,7 @@ export default function App() {
   return (
     <div className="min-h-full bg-base-200 flex flex-col">
       <LocationGate />
+      <GirisOnerisi />
       <GizlilikBildirimi />
       <GirisKapisi />
       <BildirimDurtme />
