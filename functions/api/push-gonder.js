@@ -1,9 +1,10 @@
 // Cloudflare Pages Function — admin'in tüm abonelere push göndermesi.
 // Güvenlik: sadece admin (Supabase JWT + profiller.rol='admin') gönderebilir.
-// Ortam değişkenleri:
-//   VAPID_PRIVATE_JWK   (pushforge'un ürettiği private JWK — GİZLİ)
+// Abonelik listesini admin'in KENDİ token'ıyla okur (RLS is_admin() izin verir),
+// bu yüzden ayrı bir service key GEREKMEZ.
+// Ortam değişkenleri (zaten build için var):
+//   VAPID_PRIVATE_JWK   (pushforge private JWK — GİZLİ)
 //   SUPABASE_URL / VITE_SUPABASE_URL
-//   SUPABASE_SERVICE_KEY (yoksa anon/VITE anahtarı; ama select için service iyi)
 //   SUPABASE_ANON_KEY / VITE_SUPABASE_KEY
 import { buildPushHTTPRequest } from '@pushforge/builder'
 
@@ -13,7 +14,6 @@ function conf(env) {
   return {
     url: (env.SUPABASE_URL || env.VITE_SUPABASE_URL || '').replace(/\/$/, ''),
     anon: env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_KEY,
-    servis: env.SUPABASE_SERVICE_KEY || env.SUPABASE_SERVICE_ROLE || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_KEY,
     jwk: env.VAPID_PRIVATE_JWK,
   }
 }
@@ -49,13 +49,16 @@ export async function birineGonder(jwk, abonelik, mesaj) {
 
 // Admin: tüm abonelere gönder.
 export async function pushGonderCalis(env, token, govde) {
-  const { url, anon, servis, jwk } = conf(env)
-  if (!url || !servis || !jwk) return { status: 501, body: { error: 'yapilandirma_eksik' } }
+  const { url, anon, jwk } = conf(env)
+  if (!url || !anon || !jwk) return { status: 501, body: { error: 'yapilandirma_eksik' } }
   const uid = await adminUid(url, anon, token)
   if (!uid) return { status: 403, body: { error: 'yetki_yok' } }
 
+  // Abonelikleri ADMIN'in kendi token'ıyla oku — RLS "push admin" (is_admin())
+  // admin'e tüm satırları verir; ayrı bir service key gerekmez.
+  const admHead = { apikey: anon, authorization: 'Bearer ' + token }
   const abonelikler = await fetch(url + '/rest/v1/push_abonelikleri?select=endpoint,abonelik', {
-    headers: { apikey: servis, authorization: 'Bearer ' + servis },
+    headers: admHead,
   }).then((r) => (r.ok ? r.json() : []))
 
   const privateJWK = JSON.parse(jwk)
@@ -69,11 +72,11 @@ export async function pushGonderCalis(env, token, govde) {
       else if (durum === 404 || durum === 410) olu.push(s.endpoint)
     } catch { /* atla */ }
   }
-  // ölü abonelikleri temizle
+  // ölü abonelikleri temizle (RLS delete politikası herkese açık)
   for (const ep of olu) {
     try {
       await fetch(url + '/rest/v1/push_abonelikleri?endpoint=eq.' + encodeURIComponent(ep), {
-        method: 'DELETE', headers: { apikey: servis, authorization: 'Bearer ' + servis },
+        method: 'DELETE', headers: admHead,
       })
     } catch { /* yok */ }
   }

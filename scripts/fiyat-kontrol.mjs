@@ -2,30 +2,47 @@
 // GitHub Actions'ta (zamanlanmış) çalışır. marketfiyati Cloudflare'i engellediği
 // için bu iş CF'de DEĞİL, GitHub runner'ında yapılır.
 //
-// Akış: aktif+bildirilmemiş alarmları çek → her ürünün güncel en ucuz fiyatını
-// marketfiyati'den al → hedefin altına inmişse o kullanıcının push abonelerine
-// bildirim gönder → alarmı "bildirildi" işaretle.
-//
 // Gerekli ortam değişkenleri (GitHub Secrets):
 //   SUPABASE_URL, SUPABASE_SERVICE_KEY, VAPID_PRIVATE_JWK
 import { buildPushHTTPRequest } from '@pushforge/builder'
 
-const URL_SB = (process.env.SUPABASE_URL || '').replace(/\/$/, '')
-const SERVIS = process.env.SUPABASE_SERVICE_KEY || ''
-const JWK = process.env.VAPID_PRIVATE_JWK || ''
+const URL_SB = (process.env.SUPABASE_URL || '').trim().replace(/\/$/, '')
+const SERVIS = (process.env.SUPABASE_SERVICE_KEY || '').trim()
+const JWK = (process.env.VAPID_PRIVATE_JWK || '').trim()
 const MF = 'https://api.marketfiyati.org.tr/api/v2'
 const ADMIN_MAIL = 'mailto:aflazercan@gmail.com'
 const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
 
+// ---------- 0) ORTAM TEŞHİSİ ----------
+console.log('--- Ortam kontrolü ---')
+console.log('SUPABASE_URL      :', URL_SB ? URL_SB : '❌ BOŞ')
+console.log('SUPABASE_SERVICE_KEY:', SERVIS ? `✓ (${SERVIS.length} karakter, "${SERVIS.slice(0, 8)}…")` : '❌ BOŞ')
+console.log('VAPID_PRIVATE_JWK :', JWK ? `✓ (${JWK.length} karakter)` : '❌ BOŞ')
 if (!URL_SB || !SERVIS || !JWK) {
-  console.error('Eksik env: SUPABASE_URL / SUPABASE_SERVICE_KEY / VAPID_PRIVATE_JWK')
+  console.error('❌ Eksik ortam değişkeni var. GitHub → Settings → Secrets and variables → Actions → Secrets sekmesini kontrol et.')
   process.exit(1)
 }
+
+// VAPID JWK gerçekten JSON mu?
+let privateJWK
+try {
+  privateJWK = JSON.parse(JWK)
+  if (!privateJWK.d || privateJWK.kty !== 'EC') throw new Error('beklenen alanlar yok (kty=EC, d)')
+  console.log('VAPID JWK JSON    : ✓ geçerli')
+} catch (e) {
+  console.error('❌ VAPID_PRIVATE_JWK geçerli bir JWK değil:', e.message)
+  console.error('   Değer şununla başlamalı: {"alg":"ES256",...,"d":"..."}')
+  process.exit(1)
+}
+
 const sbHead = { apikey: SERVIS, authorization: 'Bearer ' + SERVIS, 'content-type': 'application/json' }
 
 async function sbGet(path) {
   const r = await fetch(URL_SB + '/rest/v1/' + path, { headers: sbHead })
-  if (!r.ok) throw new Error('Supabase GET ' + path + ' → ' + r.status)
+  if (!r.ok) {
+    const gov = await r.text().catch(() => '')
+    throw new Error(`Supabase GET ${path.split('?')[0]} → ${r.status} ${gov.slice(0, 160)}`)
+  }
   return r.json()
 }
 async function sbPatch(path, body) {
@@ -35,7 +52,6 @@ async function sbDelete(path) {
   await fetch(URL_SB + '/rest/v1/' + path, { method: 'DELETE', headers: sbHead })
 }
 
-// marketfiyati'den ürünün güncel EN UCUZ fiyatı (Türkiye geneli)
 async function guncelFiyat(urunId) {
   const r = await fetch(MF + '/searchByIdentity', {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -50,7 +66,7 @@ async function guncelFiyat(urunId) {
   return { min: Math.min(...fiyatlar), baslik: item.title || null }
 }
 
-async function pushGonder(privateJWK, abonelik, mesaj) {
+async function pushGonder(abonelik, mesaj) {
   const { endpoint, headers, body } = await buildPushHTTPRequest({
     privateJWK, subscription: abonelik,
     message: { payload: { title: mesaj.baslik, body: mesaj.mesaj, url: mesaj.url || '/', tag: 'fiyat-alarmi' }, adminContact: ADMIN_MAIL, options: { ttl: 86400, urgency: 'high' } },
@@ -60,10 +76,11 @@ async function pushGonder(privateJWK, abonelik, mesaj) {
 }
 
 async function main() {
-  const privateJWK = JSON.parse(JWK)
+  // Supabase bağlantısını test et (net hata mesajı için)
+  console.log('--- Supabase kontrolü ---')
   const alarmlar = await sbGet('fiyat_alarmlari?select=id,kullanici_id,urun_id,baslik,hedef_fiyat,son_fiyat&aktif=eq.true&bildirildi=eq.false&limit=1000')
-  console.log('Kontrol edilecek alarm:', alarmlar.length)
-  if (!alarmlar.length) return
+  console.log('✓ Supabase bağlandı. Kontrol edilecek aktif alarm:', alarmlar.length)
+  if (!alarmlar.length) { console.log('Bekleyen alarm yok — bitti.'); return }
 
   let tetiklenen = 0, gonderilen = 0, temizlenen = 0
   const simdi = new Date().toISOString()
@@ -77,7 +94,7 @@ async function main() {
       }
       fiyat = null
     }
-    await BEKLE(350) // marketfiyati'yi yormamak için
+    await BEKLE(350)
     if (!fiyat) { await sbPatch('fiyat_alarmlari?id=eq.' + a.id, { son_kontrol: simdi }); continue }
 
     if (fiyat.min <= Number(a.hedef_fiyat)) {
@@ -90,7 +107,7 @@ async function main() {
       }
       for (const s of aboneler) {
         try {
-          const durum = await pushGonder(privateJWK, s.abonelik, mesaj)
+          const durum = await pushGonder(s.abonelik, mesaj)
           if (durum >= 200 && durum < 300) gonderilen++
           else if (durum === 404 || durum === 410) { await sbDelete('push_abonelikleri?endpoint=eq.' + encodeURIComponent(s.endpoint)); temizlenen++ }
         } catch { /* atla */ }
@@ -101,7 +118,7 @@ async function main() {
     }
   }
 
-  console.log(`Bitti. Tetiklenen alarm: ${tetiklenen}, gönderilen bildirim: ${gonderilen}, temizlenen abonelik: ${temizlenen}`)
+  console.log(`✅ Bitti. Tetiklenen alarm: ${tetiklenen}, gönderilen bildirim: ${gonderilen}, temizlenen abonelik: ${temizlenen}`)
 }
 
-main().catch((e) => { console.error('HATA:', e); process.exit(1) })
+main().catch((e) => { console.error('❌ HATA:', e.message || e); process.exit(1) })
