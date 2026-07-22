@@ -108,7 +108,7 @@ export default function Bildirimler() {
         <div className="relative w-10 h-10 rounded-2xl bg-primary/15 text-primary grid place-items-center">
           <Bell size={19} />
           {okunmamis > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-secondary text-secondary-content text-[10px] font-bold grid place-items-center">
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white ring-2 ring-base-100 text-[10px] font-bold grid place-items-center">
               {okunmamis > 9 ? '9+' : okunmamis}
             </span>
           )}

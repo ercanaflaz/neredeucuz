@@ -175,7 +175,7 @@ export default function App() {
             >
               <Bell size={20} />
               {bild.okunmamis > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-secondary text-secondary-content text-[10px] font-bold grid place-items-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white ring-2 ring-base-100 text-[10px] font-bold grid place-items-center">
                   {bild.okunmamis > 9 ? '9+' : bild.okunmamis}
                 </span>
               )}
