@@ -5,10 +5,11 @@
 const MARKALAR = [
   // Kırmızı kutu — BİM'in resmi kırmızısı
   { anahtar: ['bim'],            ad: 'BİM',         bg: '#ED1C24', text: '#ffffff', stil: 'kutu' },
-  // A101 — resmi kırmızı, beyaz yazı
-  { anahtar: ['a101', 'a 101'],  ad: 'A101',        bg: '#E4032E', text: '#ffffff', stil: 'kutu' },
-  // ŞOK — sarı zemin, lacivert yazı (kurumsal kimlik)
-  { anahtar: ['sok', 'şok'],     ad: 'ŞOK',         bg: '#FFDD00', text: '#0B4DA2', stil: 'kutu' },
+  // A101 — resmi mavi kutu, beyaz yazı
+  { anahtar: ['a101', 'a 101'],  ad: 'A101',        bg: '#0B4DA2', text: '#ffffff', stil: 'kutu' },
+  // ŞOK — kutusuz renkli harf-logo (Ş kırmızı, O mavi, K turuncu)
+  { anahtar: ['sok', 'şok'],     ad: 'ŞOK',         bg: '#E2001A', text: '#ffffff', stil: 'renkli',
+    harfRenkleri: ['#E2001A', '#0090D4', '#F39200'] },
   // Migros — turuncu kelime-logo (kutusuz)
   { anahtar: ['migros'],         ad: 'Migros',      bg: '#FF6600', text: '#FF6600', stil: 'yazi' },
   // CarrefourSA — resmi mavi

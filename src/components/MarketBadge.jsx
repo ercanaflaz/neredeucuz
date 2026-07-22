@@ -5,6 +5,17 @@ export default function MarketBadge({ market, size = 'md' }) {
   const m = marka(market)
   const sm = size === 'sm'
 
+  // ŞOK gibi kutusuz, her harfi ayrı renkte kelime-logo
+  if (m.stil === 'renkli' && Array.isArray(m.harfRenkleri)) {
+    return (
+      <span className={`font-extrabold tracking-tight leading-none ${sm ? 'text-xs' : 'text-sm'}`}>
+        {[...m.ad].map((h, i) => (
+          <span key={i} style={{ color: m.harfRenkleri[i % m.harfRenkleri.length] }}>{h}</span>
+        ))}
+      </span>
+    )
+  }
+
   // Migros gibi kutusuz, sadece renkli kalın yazı
   if (m.stil === 'yazi') {
     return (
