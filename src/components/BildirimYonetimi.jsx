@@ -35,6 +35,8 @@ export default function BildirimYonetimi() {
   const [hata, setHata] = useState('')
   const [abone, setAbone] = useState(null)
   const [gecmis, setGecmis] = useState(null)
+  const [acan, setAcan] = useState({})        // bildirim id → açan tekil kişi sayısı
+  const [filtre, setFiltre] = useState('hepsi')
 
   async function aboneSay() {
     try {
@@ -48,11 +50,26 @@ export default function BildirimYonetimi() {
         .from('bildirimler')
         .select('id,baslik,govde,tur,gonderildi,toplam,created_at')
         .order('created_at', { ascending: false })
-        .limit(50)
+        .limit(100)
       setGecmis(error ? [] : (data || []))
     } catch { setGecmis([]) }
   }
-  useEffect(() => { aboneSay(); gecmisYukle() }, [])
+  // "açıldı" olaylarından her bildirimi kaç tekil kişinin açtığını hesapla
+  async function acanYukle() {
+    try {
+      const { data } = await supabase.from('olaylar').select('ziyaretci_id,detay').eq('tur', 'bildirim_acildi').limit(20000)
+      const map = {}
+      for (const o of (data || [])) {
+        const id = o?.detay?.id
+        if (!id) continue
+        ;(map[id] = map[id] || new Set()).add(o.ziyaretci_id)
+      }
+      const say = {}
+      for (const k of Object.keys(map)) say[k] = map[k].size
+      setAcan(say)
+    } catch { setAcan({}) }
+  }
+  useEffect(() => { aboneSay(); gecmisYukle(); acanYukle() }, [])
 
   async function gonder(e) {
     e.preventDefault()
@@ -82,7 +99,7 @@ export default function BildirimYonetimi() {
       } else {
         setSonuc(j)
         setBaslik(''); setMesaj(''); setHedef(''); setDisUrl('')
-        gecmisYukle(); aboneSay()
+        gecmisYukle(); aboneSay(); acanYukle()
       }
     } catch (err) {
       setHata('Gönderilemedi. ' + (err.message || ''))
@@ -184,56 +201,87 @@ export default function BildirimYonetimi() {
 
       {/* RAPOR — gönderilen bildirimler */}
       <section className="bg-base-100 border border-base-300 rounded-3xl p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <h2 className="text-sm font-semibold text-base-content/70 flex items-center gap-1.5"><History size={16} /> Gönderilen bildirimler</h2>
-          <button onClick={gecmisYukle} className="btn btn-ghost btn-xs gap-1 text-base-content/50"><RefreshCw size={13} /> Yenile</button>
+          <div className="flex items-center gap-1.5">
+            {/* Tür filtresi */}
+            <div className="flex gap-1">
+              {[
+                { k: 'hepsi', ad: 'Tümü' },
+                { k: 'duyuru', ad: 'Duyurular' },
+                { k: 'fiyat', ad: 'Fiyat' },
+              ].map((f) => (
+                <button key={f.k} onClick={() => setFiltre(f.k)}
+                  className={`px-2.5 py-1 rounded-full text-[12px] font-medium border transition ${filtre === f.k ? 'bg-primary text-primary-content border-primary' : 'bg-base-100 text-base-content/60 border-base-300 hover:bg-base-200'}`}>
+                  {f.ad}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { gecmisYukle(); acanYukle() }} className="btn btn-ghost btn-xs gap-1 text-base-content/50"><RefreshCw size={13} /> Yenile</button>
+          </div>
         </div>
 
         {gecmis == null ? (
           <div className="flex justify-center py-8 text-base-content/40"><Loader2 className="animate-spin" /></div>
-        ) : gecmis.length === 0 ? (
-          <div className="text-center text-sm text-base-content/50 py-8">Henüz bildirim gönderilmedi.</div>
-        ) : (
-          <div className="overflow-x-auto -mx-1">
-            <table className="table table-sm">
-              <thead>
-                <tr className="text-[11px] text-base-content/50">
-                  <th>Bildirim</th>
-                  <th className="whitespace-nowrap">Tür</th>
-                  <th className="whitespace-nowrap text-right">Ulaşan</th>
-                  <th className="whitespace-nowrap text-right">Zaman</th>
-                </tr>
-              </thead>
-              <tbody>
-                {gecmis.map((b) => {
-                  const fiyat = b.tur === 'fiyat'
-                  return (
-                    <tr key={b.id}>
-                      <td className="max-w-[340px]">
-                        <div className="flex items-start gap-2">
-                          <div className={`w-7 h-7 rounded-lg grid place-items-center shrink-0 ${fiyat ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
-                            {fiyat ? <Tag size={14} /> : <Megaphone size={14} />}
+        ) : (() => {
+          const list = gecmis.filter((b) => filtre === 'hepsi' ? true : filtre === 'fiyat' ? b.tur === 'fiyat' : b.tur !== 'fiyat')
+          if (!list.length) return <div className="text-center text-sm text-base-content/50 py-8">Bu filtrede bildirim yok.</div>
+          return (
+            <div className="overflow-x-auto -mx-1">
+              <table className="table table-sm">
+                <thead>
+                  <tr className="text-[11px] text-base-content/50">
+                    <th>Bildirim</th>
+                    <th className="whitespace-nowrap">Tür</th>
+                    <th className="whitespace-nowrap text-right">Ulaşan</th>
+                    <th className="whitespace-nowrap text-right">Açan</th>
+                    <th className="whitespace-nowrap text-right">Açmayan</th>
+                    <th className="whitespace-nowrap text-right">Tarih</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((b) => {
+                    const fiyat = b.tur === 'fiyat'
+                    const acanSay = acan[String(b.id)] || 0
+                    const ulasan = b.gonderildi != null ? b.gonderildi : (b.toplam != null ? b.toplam : null)
+                    const acmayan = ulasan != null ? Math.max(0, ulasan - acanSay) : null
+                    const oran = ulasan > 0 ? Math.round((acanSay / ulasan) * 100) : null
+                    return (
+                      <tr key={b.id}>
+                        <td className="max-w-[300px]">
+                          <div className="flex items-start gap-2">
+                            <div className={`w-7 h-7 rounded-lg grid place-items-center shrink-0 ${fiyat ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
+                              {fiyat ? <Tag size={14} /> : <Megaphone size={14} />}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-medium text-sm leading-tight truncate">{b.baslik}</div>
+                              {b.govde && <div className="text-[11px] text-base-content/50 leading-tight truncate">{b.govde}</div>}
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm leading-tight truncate">{b.baslik}</div>
-                            {b.govde && <div className="text-[11px] text-base-content/50 leading-tight truncate">{b.govde}</div>}
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge badge-xs ${fiyat ? 'badge-secondary' : 'badge-primary'} badge-outline`}>{fiyat ? 'Fiyat' : 'Duyuru'}</span>
-                      </td>
-                      <td className="text-right whitespace-nowrap tabular-nums text-sm">
-                        {b.gonderildi != null ? <><b>{b.gonderildi}</b><span className="text-base-content/40">/{b.toplam ?? '—'}</span></> : <span className="text-base-content/30">—</span>}
-                      </td>
-                      <td className="text-right whitespace-nowrap text-[11px] text-base-content/50">{zamanKisa(b.created_at)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        </td>
+                        <td><span className={`badge badge-xs ${fiyat ? 'badge-secondary' : 'badge-primary'} badge-outline`}>{fiyat ? 'Fiyat' : 'Duyuru'}</span></td>
+                        <td className="text-right whitespace-nowrap tabular-nums text-sm">
+                          {ulasan != null ? <><b>{b.gonderildi ?? ulasan}</b><span className="text-base-content/40">/{b.toplam ?? '—'}</span></> : <span className="text-base-content/30">—</span>}
+                        </td>
+                        <td className="text-right whitespace-nowrap tabular-nums text-sm">
+                          <span className="text-success font-semibold">{acanSay}</span>
+                          {oran != null && <span className="text-[10px] text-base-content/40"> %{oran}</span>}
+                        </td>
+                        <td className="text-right whitespace-nowrap tabular-nums text-sm text-base-content/50">{acmayan != null ? acmayan : '—'}</td>
+                        <td className="text-right whitespace-nowrap text-[11px] text-base-content/50" title={new Date(b.created_at).toLocaleString('tr-TR')}>
+                          {new Date(b.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              <p className="text-[10px] text-base-content/40 mt-2 px-1">
+                "Açan" = bildirimi uygulamada gören tekil kişi sayısı. "Ulaşan" = push'un iletildiği cihaz sayısı.
+              </p>
+            </div>
+          )
+        })()}
       </section>
     </div>
   )

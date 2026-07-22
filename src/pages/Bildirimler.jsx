@@ -4,6 +4,7 @@ import { Bell, BellOff, BellRing, Tag, Sparkles, Loader2, Check } from 'lucide-r
 import { subscribeBildirim, getBildirim, bildirimleriYukle, bildirimGoruldu, sonGorulenMs } from '../lib/bildirimler'
 import { pushDestekli, pushIzin, pushAc, iosStandaloneGerekli } from '../lib/push'
 import ReklamYuva from '../components/ReklamYuva'
+import { izle } from '../lib/izleme'
 
 // Reklam alanı — "REKLAM" etiketiyle içerikten net ayrılır (bildirimlerle karışmasın)
 function ReklamAlani({ konum }) {
@@ -83,6 +84,22 @@ export default function Bildirimler() {
     const t = setTimeout(() => bildirimGoruldu(), 1200) // görüldü say → rozet sıfırlansın
     return () => clearTimeout(t)
   }, [])
+
+  // Bu cihazın YENİ gördüğü bildirimleri "açıldı" olarak kaydet (admin raporu: açan sayısı).
+  // Her bildirim bu cihazda bir kez sayılır; sadece taban'dan yeni olanlar.
+  useEffect(() => {
+    if (!bild.liste?.length) return
+    let acilan
+    try { acilan = new Set(JSON.parse(localStorage.getItem('ne_bildirim_acilan') || '[]')) } catch { acilan = new Set() }
+    let degisti = false
+    for (const b of bild.liste) {
+      if (new Date(b.created_at).getTime() > taban && !acilan.has(b.id)) {
+        acilan.add(b.id); degisti = true
+        try { izle('bildirim_acildi', { detay: { id: String(b.id) } }) } catch { /* yok */ }
+      }
+    }
+    if (degisti) { try { localStorage.setItem('ne_bildirim_acilan', JSON.stringify([...acilan])) } catch { /* yok */ } }
+  }, [bild.liste, taban])
 
   const sayimlar = useMemo(() => {
     const l = bild.liste
