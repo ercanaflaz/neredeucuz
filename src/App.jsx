@@ -59,8 +59,8 @@ export default function App() {
   useEffect(() => {
     if (secili) {
       izle('urun', {
-        baslik: secili.baslik || secili.ad || secili.isim || 'Ürün',
-        detay: { id: secili.id || null, marka: secili.marka || null },
+        baslik: secili.title || secili.baslik || secili.ad || secili.isim || 'Ürün',
+        detay: { id: secili.id || null, marka: secili.brand || secili.marka || null },
       })
     } else {
       sayfaIzle(hash, yolAdi(route))
