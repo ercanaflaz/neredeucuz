@@ -1,9 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSyncExternalStore } from 'react'
-import { Bell, BellOff, BellRing, Tag, Megaphone, Loader2, Check } from 'lucide-react'
+import { Bell, BellOff, BellRing, Tag, Sparkles, Loader2, Check } from 'lucide-react'
 import { subscribeBildirim, getBildirim, bildirimleriYukle, bildirimGoruldu, sonGorulenMs } from '../lib/bildirimler'
 import { pushDestekli, pushIzin, pushAc, iosStandaloneGerekli } from '../lib/push'
 import ReklamYuva from '../components/ReklamYuva'
+
+// Reklam alanı — "REKLAM" etiketiyle içerikten net ayrılır (bildirimlerle karışmasın)
+function ReklamAlani({ konum }) {
+  return (
+    <div className="relative pt-2">
+      <span className="absolute top-0 left-3 z-10 text-[9px] font-bold uppercase tracking-wider text-base-content/40 bg-base-200 px-1.5 py-0.5 rounded-md">
+        Reklam
+      </span>
+      <ReklamYuva konum={konum} adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
+    </div>
+  )
+}
 
 function zamanKisa(iso) {
   try {
@@ -133,7 +145,7 @@ export default function Bildirimler() {
       </div>
 
       {/* Reklam — liste üstü */}
-      <ReklamYuva konum="bildirim-1" adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
+      <ReklamAlani konum="bildirim-1" />
 
       {/* Liste */}
       {!bild.yuklendi ? (
@@ -155,13 +167,13 @@ export default function Bildirimler() {
               <li key={b.id}>
                 <Etiket
                   {...(link ? { href: link } : {})}
-                  className={`relative flex gap-3 rounded-2xl border p-3.5 transition ${
-                    yeni ? 'bg-primary/[0.04] border-primary/25' : 'bg-base-100 border-base-300'
+                  className={`relative flex gap-3 rounded-2xl border p-3.5 shadow-sm transition ${
+                    yeni ? 'bg-primary/[0.06] border-primary/30' : 'bg-base-100 border-base-300'
                   } ${link ? 'hover:bg-base-200 cursor-pointer' : ''}`}
                 >
                   {yeni && <span className="absolute left-0 top-4 bottom-4 w-1 rounded-r bg-secondary" />}
                   <div className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${fiyat ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary'}`}>
-                    {fiyat ? <Tag size={18} /> : <Megaphone size={18} />}
+                    {fiyat ? <Tag size={18} /> : <Sparkles size={18} />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
@@ -187,7 +199,7 @@ export default function Bildirimler() {
       )}
 
       {/* Reklam — liste altı */}
-      <ReklamYuva konum="bildirim-2" adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
+      <ReklamAlani konum="bildirim-2" />
     </div>
   )
 }
