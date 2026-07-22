@@ -13,6 +13,7 @@ import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI
 import { ReklamSerit } from '../components/ReklamRail'
 import AiAsistan from '../components/AiAsistan'
 import NasilKullanilir from '../components/NasilKullanilir'
+import UygulamayiYukle from '../components/UygulamayiYukle'
 
 const KATEGORILER = [
   { ad: 'Temel gıda', terim: 'pirinç', emoji: '🍚', grad: 'from-amber-400 to-orange-500' },
@@ -323,8 +324,9 @@ export default function Home({ onSelect }) {
             ))}
           </div>
 
-          {/* Nasıl kullanılır? — ortalı, belirgin */}
-          <div className="mt-5 flex justify-center">
+          {/* Ana ekrana ekle + Nasıl kullanılır? — ortalı, belirgin */}
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <UygulamayiYukle />
             <NasilKullanilir />
           </div>
         </div>

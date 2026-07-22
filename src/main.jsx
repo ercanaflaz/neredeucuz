@@ -3,9 +3,11 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { initAuth } from './lib/auth.js'
+import { pwaBaslat } from './lib/pwa.js'
 
-// Oturumu başlat
+// Oturumu başlat + PWA yükleme olayını erken dinle (beforeinstallprompt kaçmasın)
 initAuth()
+pwaBaslat()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
