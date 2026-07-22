@@ -1,5 +1,5 @@
 import { useState, useMemo, useSyncExternalStore, useEffect, useRef, lazy, Suspense } from 'react'
-import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft } from 'lucide-react'
+import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft, RefreshCw } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import AdSlot from '../components/AdSlot'
 import MarketBadge from '../components/MarketBadge'
@@ -9,7 +9,7 @@ import { searchByKeyword, searchByBarcode, normalize } from '../lib/marketfiyati
 import { urunOnerileri } from '../lib/oneriler'
 import { barkodCoz } from '../lib/barkod'
 import { tl } from '../lib/format'
-import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla } from '../lib/store'
+import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla, yakinMarketleriYukle } from '../lib/store'
 import { izle } from '../lib/izleme'
 import ReklamYuva from '../components/ReklamYuva'
 import AiAsistan from '../components/AiAsistan'
@@ -140,6 +140,19 @@ export default function Home({ onSelect }) {
   function yaricapSec(km) {
     yaricapDegistir(km)
     if (aktifKelime) setTimeout(() => aramaYap(aktifKelime), 0)
+  }
+
+  // "Anlık fiyat" → yakın marketleri (ve arama sonucunu) canlı yenile
+  const [yeniliyor, setYeniliyor] = useState(false)
+  async function anlikYenile() {
+    if (yeniliyor) return
+    setYeniliyor(true)
+    try {
+      if (store.konumDurumu === 'tamam') await yakinMarketleriYukle()
+      else konumIste()
+      if (aktifKelime) await aramaYap(aktifKelime)
+    } catch { /* yok */ }
+    finally { setTimeout(() => setYeniliyor(false), 500) }
   }
 
   // Aramayı temizle → ana sayfa görünümüne dön.
@@ -317,9 +330,18 @@ export default function Home({ onSelect }) {
             </div>
           </div>
 
-          {/* Güven şeridi */}
+          {/* Güven şeridi — "anlık fiyat" tıklanınca marketler canlı yenilenir */}
           <div className="mt-4 flex flex-wrap gap-2">
-            {[['🏪', '7 market'], ['📦', '50.000+ ürün'], ['⚡', 'anlık fiyat'], ['🆓', 'ücretsiz']].map(([e, t]) => (
+            <button
+              onClick={anlikYenile}
+              disabled={yeniliyor}
+              title="Marketleri ve fiyatları yenile"
+              className="inline-flex items-center gap-1.5 bg-white/25 hover:bg-white/35 backdrop-blur rounded-full px-3 py-1 text-xs font-semibold transition active:scale-95"
+            >
+              {yeniliyor ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+              {yeniliyor ? 'yenileniyor…' : 'anlık fiyat'}
+            </button>
+            {[['🏪', '7 market'], ['📦', '50.000+ ürün'], ['🆓', 'ücretsiz']].map(([e, t]) => (
               <span key={t} className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur rounded-full px-3 py-1 text-xs font-medium">
                 <span>{e}</span> {t}
               </span>
