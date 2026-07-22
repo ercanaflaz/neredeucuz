@@ -2,11 +2,16 @@
 // Güvenlik: sadece admin (Supabase JWT + profiller.rol='admin') gönderebilir.
 // Abonelik listesini admin'in KENDİ token'ıyla okur (RLS is_admin() izin verir),
 // bu yüzden ayrı bir service key GEREKMEZ.
+//
+// ŞİFRELEME: modern "aes128gcm" (RFC 8291) — iOS/Safari dahil çalışır.
+// Eski "@pushforge/builder" ("aesgcm") Apple'da bildirim GÖSTERMİYORDU;
+// yerine ../_webpush.js (Web Crypto, sıfır bağımlılık) kullanılır.
+//
 // Ortam değişkenleri (zaten build için var):
-//   VAPID_PRIVATE_JWK   (pushforge private JWK — GİZLİ)
+//   VAPID_PRIVATE_JWK   (VAPID özel JWK — GİZLİ)
 //   SUPABASE_URL / VITE_SUPABASE_URL
 //   SUPABASE_ANON_KEY / VITE_SUPABASE_KEY
-import { buildPushHTTPRequest } from '@pushforge/builder'
+import { pushGonder } from './_webpush.js'
 
 const ADMIN_MAIL = 'mailto:aflazercan@gmail.com'
 
@@ -32,27 +37,14 @@ async function adminUid(url, anon, token) {
   } catch { return null }
 }
 
-// Tek bir aboneliğe gönder. Dönen HTTP durumunu verir (410/404 → ölü).
-export async function birineGonder(jwk, abonelik, mesaj) {
-  const { endpoint, headers, body } = await buildPushHTTPRequest({
-    privateJWK: jwk,
-    subscription: abonelik,
-    message: {
-      payload: { title: mesaj.baslik || 'neredeucuz', body: mesaj.mesaj || '', url: mesaj.url || '/', tag: mesaj.tag },
-      adminContact: ADMIN_MAIL,
-      options: { ttl: mesaj.ttl || 86400, urgency: mesaj.urgency || 'normal' },
-    },
-  })
-  const r = await fetch(endpoint, { method: 'POST', headers, body })
-  return r.status
-}
-
 // Admin: tüm abonelere gönder.
 export async function pushGonderCalis(env, token, govde) {
-  const { url, anon, jwk } = conf(env)
-  if (!url || !anon || !jwk) return { status: 501, body: { error: 'yapilandirma_eksik' } }
+  const { url, anon, jwk: jwkStr } = conf(env)
+  if (!url || !anon || !jwkStr) return { status: 501, body: { error: 'yapilandirma_eksik' } }
   const uid = await adminUid(url, anon, token)
   if (!uid) return { status: 403, body: { error: 'yetki_yok' } }
+
+  const jwk = JSON.parse(jwkStr)
 
   // Abonelikleri ADMIN'in kendi token'ıyla oku — RLS "push admin" (is_admin())
   // admin'e tüm satırları verir; ayrı bir service key gerekmez.
@@ -61,16 +53,24 @@ export async function pushGonderCalis(env, token, govde) {
     headers: admHead,
   }).then((r) => (r.ok ? r.json() : []))
 
-  const privateJWK = JSON.parse(jwk)
-  const mesaj = { baslik: govde.baslik, mesaj: govde.mesaj, url: govde.url || '/', tag: 'duyuru' }
+  const payload = {
+    title: govde.baslik || 'neredeucuz',
+    body: govde.mesaj || '',
+    url: govde.url || '/',
+    tag: 'duyuru',
+  }
+
   let gonderildi = 0
   const olu = []
+  const detay = [] // teşhis: her endpoint için ana bilgisayar + durum
   for (const s of abonelikler) {
+    let durum = 0
     try {
-      const durum = await birineGonder(privateJWK, s.abonelik, mesaj)
+      durum = await pushGonder({ jwk, subject: ADMIN_MAIL, subscription: s.abonelik, payload })
       if (durum >= 200 && durum < 300) gonderildi++
       else if (durum === 404 || durum === 410) olu.push(s.endpoint)
-    } catch { /* atla */ }
+    } catch { durum = -1 }
+    try { detay.push({ host: new URL(s.endpoint).host, durum }) } catch { detay.push({ host: '?', durum }) }
   }
   // ölü abonelikleri temizle (RLS delete politikası herkese açık)
   for (const ep of olu) {
@@ -80,7 +80,7 @@ export async function pushGonderCalis(env, token, govde) {
       })
     } catch { /* yok */ }
   }
-  return { status: 200, body: { gonderildi, toplam: abonelikler.length, temizlenen: olu.length } }
+  return { status: 200, body: { gonderildi, toplam: abonelikler.length, temizlenen: olu.length, detay } }
 }
 
 export async function onRequest(context) {

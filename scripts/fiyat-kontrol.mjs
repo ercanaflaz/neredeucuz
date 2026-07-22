@@ -4,7 +4,10 @@
 //
 // Gerekli ortam değişkenleri (GitHub Secrets):
 //   SUPABASE_URL, SUPABASE_SERVICE_KEY, VAPID_PRIVATE_JWK
-import { buildPushHTTPRequest } from '@pushforge/builder'
+//
+// ŞİFRELEME: modern "aes128gcm" (RFC 8291) — iOS/Safari dahil çalışır.
+// (Eski "@pushforge/builder" "aesgcm" şeması Apple'da gösterilmiyordu.)
+import { pushGonder } from '../functions/api/_webpush.js'
 
 const URL_SB = (process.env.SUPABASE_URL || '').trim().replace(/\/$/, '')
 const SERVIS = (process.env.SUPABASE_SERVICE_KEY || '').trim()
@@ -66,13 +69,15 @@ async function guncelFiyat(urunId) {
   return { min: Math.min(...fiyatlar), baslik: item.title || null }
 }
 
-async function pushGonder(abonelik, mesaj) {
-  const { endpoint, headers, body } = await buildPushHTTPRequest({
-    privateJWK, subscription: abonelik,
-    message: { payload: { title: mesaj.baslik, body: mesaj.mesaj, url: mesaj.url || '/', tag: 'fiyat-alarmi' }, adminContact: ADMIN_MAIL, options: { ttl: 86400, urgency: 'high' } },
+async function bildirimGonder(abonelik, mesaj) {
+  return pushGonder({
+    jwk: privateJWK,
+    subject: ADMIN_MAIL,
+    subscription: abonelik,
+    payload: { title: mesaj.baslik, body: mesaj.mesaj, url: mesaj.url || '/', tag: 'fiyat-alarmi' },
+    ttl: 86400,
+    urgency: 'high',
   })
-  const r = await fetch(endpoint, { method: 'POST', headers, body })
-  return r.status
 }
 
 async function main() {
@@ -107,7 +112,7 @@ async function main() {
       }
       for (const s of aboneler) {
         try {
-          const durum = await pushGonder(s.abonelik, mesaj)
+          const durum = await bildirimGonder(s.abonelik, mesaj)
           if (durum >= 200 && durum < 300) gonderilen++
           else if (durum === 404 || durum === 410) { await sbDelete('push_abonelikleri?endpoint=eq.' + encodeURIComponent(s.endpoint)); temizlenen++ }
         } catch { /* atla */ }
