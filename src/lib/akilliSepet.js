@@ -132,6 +132,42 @@ export async function yeniListeOlustur(ad, kalemler) {
   return kayit
 }
 
+// Doğrudan yeni adlandırılmış kayıtlı liste oluştur (aktif listeye DOKUNMADAN).
+export async function kayitliListeOlustur(ad, kalemler) {
+  const isim = String(ad || '').trim() || `Liste ${cache.listelerim.length + 1}`
+  const urunler = (kalemler || [])
+    .map((k) => {
+      const terim = duzenleTerim(k.terim)
+      return { id: yeniId(), terim, adet: k.adet || 1, birim: birimTespit(terim), tercihMarka: k.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] }
+    })
+    .filter((x) => x.terim)
+  const kayit = { id: yeniId(), ad: isim, urunler }
+  cache.listelerim = [kayit, ...cache.listelerim]
+  lsSetK(LS_LISTELER, cache.listelerim); emit()
+  const u = uid()
+  if (u) { try { await supabase.from('kayitli_listeler').insert({ id: kayit.id, kullanici_id: u, ad: kayit.ad, urunler: kayit.urunler }) } catch { /* yoksay */ } }
+  return kayit
+}
+
+// Var olan bir kayıtlı listeye ürün ekle.
+export async function kayitliListeyeEkle(listeId, kalem) {
+  const l = cache.listelerim.find((x) => x.id === listeId)
+  if (!l) return
+  const t = duzenleTerim(kalem.terim)
+  if (!t) return
+  const urunler = JSON.parse(JSON.stringify(l.urunler || []))
+  const mevcut = urunler.find((x) => x.terim.toLocaleLowerCase('tr') === t)
+  if (mevcut) mevcut.adet = (mevcut.adet || 1) + (kalem.adet || 1)
+  else urunler.push({ id: yeniId(), terim: t, adet: kalem.adet || 1, birim: birimTespit(t), tercihMarka: kalem.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
+  cache.listelerim = cache.listelerim.map((x) => (x.id === listeId ? { ...x, urunler } : x))
+  lsSetK(LS_LISTELER, cache.listelerim)
+  // Bu liste şu an aktifse aktif listeyi de güncelle
+  if (cache.aktifListeId === listeId) { cache.liste = JSON.parse(JSON.stringify(urunler)); lsSet(cache.liste) }
+  emit()
+  const u = uid()
+  if (u) { try { await supabase.from('kayitli_listeler').update({ urunler }).eq('id', listeId) } catch { /* yoksay */ } }
+}
+
 // Kayıtlı listeyi aktif listeye yükle
 export function listeAc(id) {
   const l = cache.listelerim.find((x) => x.id === id)

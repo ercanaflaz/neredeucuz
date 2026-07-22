@@ -1,13 +1,16 @@
 import { tl, tasarrufYuzde } from '../lib/format'
 import MarketBadge from './MarketBadge'
+import ListeyeEkle from './ListeyeEkle'
 
 // Arama sonuç listesindeki tek ürün kartı.
 export default function ProductCard({ urun, onClick }) {
   const tasarruf = tasarrufYuzde(urun.minPrice, urun.maxPrice)
   return (
-    <button
+    <div
       onClick={onClick}
-      className="w-full text-left bg-base-100 rounded-2xl p-3 flex gap-3 items-center border border-base-300 hover:border-primary/40 active:scale-[0.99] transition"
+      role="button"
+      tabIndex={0}
+      className="w-full text-left bg-base-100 rounded-2xl p-3 flex gap-3 items-center border border-base-300 hover:border-primary/40 active:scale-[0.99] transition cursor-pointer"
     >
       <div className="w-16 h-16 rounded-xl bg-base-200 shrink-0 overflow-hidden flex items-center justify-center">
         {urun.imageUrl ? (
@@ -23,6 +26,7 @@ export default function ProductCard({ urun, onClick }) {
           <span className="text-xs text-base-content/50">{urun.marketCount} markette karşılaştırıldı</span>
           {urun.kampanyali && <span className="text-[10px] font-semibold bg-secondary/15 text-secondary rounded px-1.5 py-0.5">🏷️ kampanya</span>}
         </div>
+        <div className="mt-1.5"><ListeyeEkle urun={urun} /></div>
       </div>
       <div className="text-right shrink-0 flex flex-col items-end gap-1">
         <div className="text-[11px] text-base-content/50">en ucuz</div>
@@ -35,6 +39,6 @@ export default function ProductCard({ urun, onClick }) {
           <div className="text-[11px] text-secondary font-semibold">%{tasarruf} fark</div>
         )}
       </div>
-    </button>
+    </div>
   )
 }

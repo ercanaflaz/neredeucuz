@@ -4,6 +4,7 @@ import { tl, tarih, tasarrufYuzde } from '../lib/format'
 import { urunGetirById, normalize } from '../lib/marketfiyati'
 import AdSlot from '../components/AdSlot'
 import MarketBadge from '../components/MarketBadge'
+import ListeyeEkle from '../components/ListeyeEkle'
 import {
   subscribe, getSnapshot, favoriMi, favoriEkle, favoriSil, alarmKur,
   sepeteEkle, sepetteMi,
@@ -110,6 +111,9 @@ export default function Product({ urun: urunProp, onBack, user }) {
           <Bell size={18} /> Fiyat alarmı
         </button>
       </div>
+
+      {/* Kendi listene ekle */}
+      <ListeyeEkle urun={urun} variant="full" className="w-full" />
 
       {alarmAcik && (
         <div className="bg-base-100 rounded-2xl p-4 border border-base-300 space-y-3">
