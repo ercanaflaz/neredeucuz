@@ -1,28 +1,22 @@
-// Market marka kimliği: her zincirin kendi rengi, kısaltması ve kurumsal logosu.
+// Market marka kimliği: her zincirin kendi rengi, tarzı ve kısaltması.
 // marketAdi API'den geldiği gibi eşleşir (küçük harf + içerir kontrolü).
-
-// Logo: marketin kendi alan adının favicon'u (Google favicon servisi — güvenilir,
-// gerçek kurumsal marka simgesi). Kopyalayıp barındırmayız; anlık yüklenir.
-export function logoUrl(alan) {
-  return alan ? `https://www.google.com/s2/favicons?domain=${alan}&sz=64` : null
-}
+// stil: 'kutu' → renkli kutu + beyaz/koyu yazı · 'yazi' → sadece renkli kalın yazı (ör. Migros)
 
 const MARKALAR = [
-  { anahtar: ['bim'],            ad: 'BİM',         bg: '#E4002B', text: '#ffffff', alan: 'bim.com.tr' },
-  { anahtar: ['a101', 'a 101'],  ad: 'A101',        bg: '#C8102E', text: '#ffffff', alan: 'a101.com.tr' },
-  { anahtar: ['sok', 'şok'],     ad: 'ŞOK',         bg: '#FDC300', text: '#1a1a1a', alan: 'sokmarket.com.tr' },
-  { anahtar: ['migros'],         ad: 'Migros',      bg: '#EF7D00', text: '#ffffff', alan: 'migros.com.tr' },
-  { anahtar: ['carrefour'],      ad: 'CarrefourSA', bg: '#004B93', text: '#ffffff', alan: 'carrefoursa.com' },
-  { anahtar: ['hakmar'],         ad: 'Hakmar',      bg: '#B4121B', text: '#ffffff', alan: 'hakmar.com.tr' },
-  { anahtar: ['tarim', 'tarım', 'kredi'], ad: 'Tarım Kredi', bg: '#2E7D32', text: '#ffffff', alan: 'tarimkredi.com.tr' },
+  { anahtar: ['bim'],            ad: 'BİM',         bg: '#E4002B', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['a101', 'a 101'],  ad: 'A101',        bg: '#C8102E', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['sok', 'şok'],     ad: 'ŞOK',         bg: '#FFED00', text: '#1b2a6b', stil: 'kutu' },
+  { anahtar: ['migros'],         ad: 'Migros',      bg: '#EA6E1F', text: '#EA6E1F', stil: 'yazi' },
+  { anahtar: ['carrefour'],      ad: 'CarrefourSA', bg: '#004B93', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['hakmar'],         ad: 'Hakmar',      bg: '#B4121B', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['tarim', 'tarım', 'kredi'], ad: 'Tarım Kredi', bg: '#1C7C34', text: '#ffffff', stil: 'kutu' },
 ]
 
-const VARSAYILAN = { ad: null, bg: '#64748b', text: '#ffffff', alan: null }
+const VARSAYILAN = { ad: null, bg: '#64748b', text: '#ffffff', stil: 'kutu' }
 
-// Verilen market adına en uygun marka kimliğini döndürür (logo dahil).
+// Verilen market adına en uygun marka kimliğini döndürür.
 export function marka(marketAdi = '') {
   const s = String(marketAdi).toLocaleLowerCase('tr')
   const bulunan = MARKALAR.find((m) => m.anahtar.some((a) => s.includes(a)))
-  const t = bulunan || { ...VARSAYILAN, ad: marketAdi || 'Market' }
-  return { ...t, ad: t.ad, logo: logoUrl(t.alan) }
+  return bulunan ? { ...bulunan } : { ...VARSAYILAN, ad: marketAdi || 'Market' }
 }

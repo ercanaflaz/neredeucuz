@@ -36,7 +36,14 @@ export default function ProductCard({ urun, onClick }) {
         <div className="font-medium text-sm leading-tight line-clamp-2 min-h-[2.4em]">{urun.title}</div>
         {urun.brand && <div className="text-[11px] text-base-content/40 -mt-0.5 truncate">{urun.brand}</div>}
         <div className="mt-auto pt-1 space-y-1">
-          {urun.cheapest && <MarketBadge market={urun.cheapest.market} size="sm" />}
+          {urun.cheapest && (
+            <div className="flex items-center gap-1.5">
+              <MarketBadge market={urun.cheapest.market} size="sm" />
+              {urun.marketCount > 1 && (
+                <span className="text-[10px] text-base-content/40 font-medium">+{urun.marketCount - 1} market</span>
+              )}
+            </div>
+          )}
           <div className="flex items-end justify-between gap-1">
             <div>
               <div className="text-[10px] text-base-content/40 leading-none">en ucuz</div>
