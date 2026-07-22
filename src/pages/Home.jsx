@@ -1,4 +1,4 @@
-import { useState, useMemo, useSyncExternalStore, lazy, Suspense } from 'react'
+import { useState, useMemo, useSyncExternalStore, useEffect, useRef, lazy, Suspense } from 'react'
 import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import AdSlot from '../components/AdSlot'
@@ -6,7 +6,9 @@ import MarketBadge from '../components/MarketBadge'
 import { POPULER } from '../data/populer'
 import { marka } from '../lib/markets'
 import { searchByKeyword, searchByBarcode, normalize } from '../lib/marketfiyati'
+import { urunOnerileri } from '../lib/oneriler'
 import { barkodCoz } from '../lib/barkod'
+import { tl } from '../lib/format'
 import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla } from '../lib/store'
 import { ReklamSerit } from '../components/ReklamRail'
 import AiAsistan from '../components/AiAsistan'
@@ -44,12 +46,18 @@ export default function Home({ onSelect }) {
   const [marketFiltre, setMarketFiltre] = useState(null)
   const [sadeceKampanya, setSadeceKampanya] = useState(false)
   const [barkodUrunId, setBarkodUrunId] = useState(null) // barkodla taranan ürün (başta gösterilir)
+  // Canlı arama önerileri
+  const [oneriler, setOneriler] = useState([])
+  const [oneriYaziyor, setOneriYaziyor] = useState(false) // kutuda yazılıyor → açılır liste göster
+  const [oneriYukleniyor, setOneriYukleniyor] = useState(false)
+  const zamanlayici = useRef(null)
 
   async function aramaYap(kelime) {
     const k = (kelime ?? q).trim()
     if (!k) return
     const konum = getSnapshot().konum
     setQ(k); setAktifKelime(k); setMarketFiltre(null); setSadeceKampanya(false); setBarkodUrunId(null)
+    oneriKapat()
     setYukleniyor(true); setHata(null); setBilgi(''); setAranan(k)
     aramaLogla(k)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -133,8 +141,30 @@ export default function Home({ onSelect }) {
   function aramayiTemizle() {
     setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([])
     setHata(null); setBilgi(''); setMarketFiltre(null); setSadeceKampanya(false); setBarkodUrunId(null)
+    oneriKapat()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  // Canlı öneri: yazarken (debounce) gerçek ürünleri getir.
+  useEffect(() => {
+    const k = q.trim()
+    if (!oneriYaziyor || k.length < 2) { setOneriler([]); setOneriYukleniyor(false); return }
+    setOneriYukleniyor(true)
+    clearTimeout(zamanlayici.current)
+    zamanlayici.current = setTimeout(async () => {
+      try {
+        const konum = getSnapshot().konum
+        const list = normalize(await searchByKeyword(k, konum), konum)
+        setOneriler(list.slice(0, 6))
+      } catch { setOneriler([]) } finally { setOneriYukleniyor(false) }
+    }, 300)
+    return () => clearTimeout(zamanlayici.current)
+  }, [q, oneriYaziyor])
+
+  function oneriKapat() { setOneriYaziyor(false); setOneriler([]); setOneriYukleniyor(false) }
+  function oneriSec(urun) { oneriKapat(); onSelect(urun) }
+  // Yazılana yakın sonuç yoksa "bunu mu dediniz" düzeltme önerileri.
+  const yakinOneriler = (oneriYaziyor && !oneriYukleniyor && q.trim().length >= 2 && oneriler.length === 0) ? urunOnerileri(q, 5) : []
 
   // Sonuçlarda bulunan marketler (filtre çipleri için)
   const marketler = useMemo(() => {
@@ -183,18 +213,61 @@ export default function Home({ onSelect }) {
 
           {/* Arama: net "Ara" + ayrı "Barkodla tara" (seçenekli) */}
           <form onSubmit={(e) => { e.preventDefault(); aramaYap() }} className="mt-5 space-y-2">
-            <label className="input input-lg flex items-center gap-2 w-full bg-base-100 text-base-content rounded-2xl">
-              <Search size={20} className="text-base-content/40" />
-              <input
-                type="text"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="süt, yumurta, deterjan..."
-                className="grow"
-                inputMode="search"
-                enterKeyHint="search"
-              />
-            </label>
+            <div className="relative">
+              <label className="input input-lg flex items-center gap-2 w-full bg-base-100 text-base-content rounded-2xl">
+                <Search size={20} className="text-base-content/40" />
+                <input
+                  type="text"
+                  value={q}
+                  onChange={(e) => { setQ(e.target.value); setOneriYaziyor(true) }}
+                  onFocus={() => setOneriYaziyor(true)}
+                  onBlur={() => setTimeout(oneriKapat, 150)}
+                  placeholder="süt, yumurta, deterjan..."
+                  className="grow"
+                  inputMode="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
+                />
+                {oneriYukleniyor && <Loader2 size={18} className="animate-spin text-base-content/30" />}
+                {q && <button type="button" onClick={() => { setQ(''); setOneriYaziyor(true) }} className="text-base-content/40 text-xl leading-none px-1">×</button>}
+              </label>
+
+              {/* Canlı öneri açılır listesi */}
+              {oneriYaziyor && (oneriler.length > 0 || yakinOneriler.length > 0) && (
+                <div className="absolute z-30 mt-1 w-full bg-base-100 text-base-content rounded-2xl shadow-2xl border border-base-300 overflow-hidden max-h-[60vh] overflow-y-auto">
+                  {oneriler.map((u) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => oneriSec(u)}
+                      className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-base-200 border-b border-base-200 last:border-0"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-base-200 shrink-0 overflow-hidden flex items-center justify-center">
+                        {u.imageUrl ? <img src={u.imageUrl} alt="" className="w-full h-full object-contain" /> : <Search size={16} className="text-base-content/30" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium leading-tight line-clamp-1">{u.title}</div>
+                        <div className="text-[11px] text-base-content/50 flex items-center gap-1.5">
+                          {u.cheapest && <MarketBadge market={u.cheapest.market} size="sm" />}
+                          {u.minPrice != null && <span className="font-semibold text-primary">{tl(u.minPrice)}</span>}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  {yakinOneriler.length > 0 && (
+                    <div className="p-2.5 space-y-1.5">
+                      <div className="text-[11px] text-base-content/50">Bunu mu demek istedin?</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {yakinOneriler.map((t) => (
+                          <button key={t} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => aramaYap(t)} className="badge badge-outline badge-primary cursor-pointer py-2.5">{t}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <button type="submit" className="btn btn-lg flex-1 rounded-2xl bg-base-100 text-primary border-none hover:bg-base-200">
                 <Search size={20} /> Ara
