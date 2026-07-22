@@ -53,11 +53,11 @@ export async function pushGonderCalis(env, token, govde) {
     headers: admHead,
   }).then((r) => (r.ok ? r.json() : []))
 
-  // Push'a tıklayınca uygulama içindeki Bildirimler sayfası açılsın
+  // Push'a tıklayınca gidilecek yer: admin bir hedef seçtiyse o, yoksa Bildirimler sayfası
   const payload = {
     title: govde.baslik || 'neredeucuz',
     body: govde.mesaj || '',
-    url: '/#/bildirimler',
+    url: (govde.url && String(govde.url).trim()) || '/#/bildirimler',
     tag: 'duyuru',
   }
 

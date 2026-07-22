@@ -2,6 +2,17 @@ import { useState, useEffect } from 'react'
 import { BellRing, Send, Loader2, Megaphone, Tag, Users, Check, RefreshCw, History } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
+// Tıklanınca gidilecek hazır hedefler (uygulama içi) + dış bağlantı seçeneği
+const HEDEFLER = [
+  { v: '', ad: 'Bildirimler sayfası (varsayılan)' },
+  { v: '/#/', ad: 'Ana sayfa' },
+  { v: '/#/sepet', ad: 'Akıllı Sepet' },
+  { v: '/#/favoriler', ad: 'Favoriler' },
+  { v: '/#/giris', ad: 'Hesabım / Giriş' },
+  { v: '/#/reklam-ver', ad: 'Reklam Ver sayfası' },
+  { v: '__dis__', ad: 'Dış bağlantı (kendi linkim)…' },
+]
+
 function zamanKisa(iso) {
   try {
     const fark = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
@@ -17,7 +28,8 @@ function zamanKisa(iso) {
 export default function BildirimYonetimi() {
   const [baslik, setBaslik] = useState('')
   const [mesaj, setMesaj] = useState('')
-  const [url, setUrl] = useState('')
+  const [hedef, setHedef] = useState('')       // seçilen hazır hedef ('' = varsayılan)
+  const [disUrl, setDisUrl] = useState('')     // "dış bağlantı" seçilince URL
   const [bekle, setBekle] = useState(false)
   const [sonuc, setSonuc] = useState(null)
   const [hata, setHata] = useState('')
@@ -45,6 +57,12 @@ export default function BildirimYonetimi() {
   async function gonder(e) {
     e.preventDefault()
     setBekle(true); setHata(''); setSonuc(null)
+    // Tıklama hedefini hesapla
+    let url = hedef
+    if (hedef === '__dis__') {
+      url = disUrl.trim()
+      if (!/^https?:\/\//i.test(url)) { setHata('Dış bağlantı https:// ile başlamalı.'); setBekle(false); return }
+    }
     try {
       const { data } = await supabase.auth.getSession()
       const token = data?.session?.access_token
@@ -52,7 +70,7 @@ export default function BildirimYonetimi() {
       const r = await fetch('/api/push-gonder', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
-        body: JSON.stringify({ baslik: baslik.trim(), mesaj: mesaj.trim(), url: url.trim() || '/' }),
+        body: JSON.stringify({ baslik: baslik.trim(), mesaj: mesaj.trim(), url }),
       })
       const j = await r.json().catch(() => ({}))
       if (!r.ok) {
@@ -63,7 +81,7 @@ export default function BildirimYonetimi() {
         )
       } else {
         setSonuc(j)
-        setBaslik(''); setMesaj(''); setUrl('')
+        setBaslik(''); setMesaj(''); setHedef(''); setDisUrl('')
         gecmisYukle(); aboneSay()
       }
     } catch (err) {
@@ -108,10 +126,19 @@ export default function BildirimYonetimi() {
               <span className="text-[10px] text-base-content/40">{mesaj.length}/160</span>
             </label>
             <label className="block">
-              <span className="text-[11px] font-semibold text-base-content/60">Tıklanınca gidilecek yol (opsiyonel)</span>
-              <input value={url} onChange={(e) => setUrl(e.target.value)}
-                placeholder="ör. /#/sepet — boşsa Bildirimler sayfası açılır" className="input input-bordered input-sm w-full mt-1" />
+              <span className="text-[11px] font-semibold text-base-content/60">Tıklanınca nereye gitsin?</span>
+              <select value={hedef} onChange={(e) => setHedef(e.target.value)} className="select select-bordered select-sm w-full mt-1">
+                {HEDEFLER.map((h) => <option key={h.v} value={h.v}>{h.ad}</option>)}
+              </select>
             </label>
+            {hedef === '__dis__' && (
+              <label className="block">
+                <span className="text-[11px] font-semibold text-base-content/60">Dış bağlantı adresi</span>
+                <input value={disUrl} onChange={(e) => setDisUrl(e.target.value)} inputMode="url"
+                  placeholder="https://ornek.com/kampanya" className="input input-bordered input-sm w-full mt-1" />
+                <span className="text-[10px] text-base-content/40">Tıklayınca bu adres yeni sekmede/uygulamada açılır.</span>
+              </label>
+            )}
           </div>
 
           {/* Sağ: canlı önizleme + gönder */}
