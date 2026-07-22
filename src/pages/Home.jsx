@@ -384,24 +384,29 @@ export default function Home({ onSelect }) {
         </>
       )}
 
-      {/* Sana yakın marketler */}
-      {store.konumDurumu === 'tamam' && store.yakinMarketler.length > 0 && !aramaVar && (
-        <section className="space-y-2">
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-primary" />
-            <h2 className="font-bold text-sm">Sana yakın marketler</h2>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible">
-            {store.yakinMarketler.slice(0, 12).map((m) => (
-              <div key={m.id} className="shrink-0 bg-base-100 border border-base-300 rounded-2xl p-2.5 min-w-[130px] md:min-w-0">
-                <MarketBadge market={m.market} size="sm" />
-                <div className="text-xs mt-1 line-clamp-1">{m.sube}</div>
-                {m.mesafe != null && <div className="text-[11px] text-base-content/50">{formatMesafe(m.mesafe)}</div>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Sana yakın marketler — seçilen yarıçapa göre anında süzülür */}
+      {store.konumDurumu === 'tamam' && !aramaVar && (() => {
+        const yakinlar = store.yakinMarketler.filter((m) => m.mesafe == null || m.mesafe <= store.yaricap * 1000)
+        if (!yakinlar.length) return null
+        return (
+          <section className="space-y-2">
+            <div className="flex items-center gap-2">
+              <MapPin size={16} className="text-primary" />
+              <h2 className="font-bold text-sm">Sana yakın marketler</h2>
+              <span className="text-xs text-base-content/50">· {store.yaricap} km içinde {yakinlar.length}</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible">
+              {yakinlar.slice(0, 12).map((m) => (
+                <div key={m.id} className="shrink-0 bg-base-100 border border-base-300 rounded-2xl p-2.5 min-w-[130px] md:min-w-0">
+                  <MarketBadge market={m.market} size="sm" />
+                  <div className="text-xs mt-1 line-clamp-1">{m.sube}</div>
+                  {m.mesafe != null && <div className="text-[11px] text-base-content/50">{formatMesafe(m.mesafe)}</div>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+      })()}
 
       {/* Kapsanan marketler */}
       {!aramaVar && (

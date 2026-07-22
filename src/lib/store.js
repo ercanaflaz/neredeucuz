@@ -104,20 +104,23 @@ export function konumSormaKapat() {
   cache.konumSoruldu = true; lsSet(LS_KONUM_SORULDU, true); emit()
 }
 
-// Kullanıcı bölge yarıçapını değiştirir (km). Konum varsa filtre anında güncellenir.
+// Yakın marketleri her zaman geniş çekeriz; gösterim seçilen yarıçapa göre
+// ANINDA süzülür (Home). Böylece yarıçap değişince liste anlık daralır/genişler.
+const YAKIN_FETCH_KM = 50
+
+// Kullanıcı bölge yarıçapını değiştirir (km). Liste anında (istemci tarafı) süzülür.
 export function yaricapDegistir(km) {
   cache.yaricap = km
   lsSet(LS_YARICAP, km)
   if (cache.konum) cache.konum = { ...cache.konum, distance: km }
-  emit()
-  if (cache.konum) yakinMarketleriYukle()
+  emit() // yakinMarketler zaten 50 km yüklü → Home yarıçapa göre süzer
 }
 
 export async function yakinMarketleriYukle() {
   if (!cache.konum) return
   try {
-    const res = await nearestDepots(cache.konum, cache.yaricap)
-    cache.yakinMarketler = normalizeNearest(res).slice(0, 30)
+    const res = await nearestDepots(cache.konum, YAKIN_FETCH_KM)
+    cache.yakinMarketler = normalizeNearest(res).slice(0, 60)
     emit()
   } catch { /* yoksay */ }
 }
