@@ -1,5 +1,5 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
-import { ChevronLeft, Heart, Bell, Trophy, ShoppingCart, Check, Loader2 } from 'lucide-react'
+import { ChevronLeft, Heart, Bell, Trophy, ShoppingCart, Check, Loader2, RefreshCw } from 'lucide-react'
 import { tl, tarih, tasarrufYuzde } from '../lib/format'
 import { urunGetirById, normalize } from '../lib/marketfiyati'
 import AdSlot from '../components/AdSlot'
@@ -22,24 +22,22 @@ export default function Product({ urun: urunProp, onBack, user }) {
   // Yeni ürün açılınca yerel durumu sıfırla
   useEffect(() => { setUrun(urunProp) }, [urunProp])
 
-  // Ürünü id'siyle yeniden sorgula: o ürünü satan TÜM (bölgedeki) marketleri
-  // fiyatıyla getir, en ucuzdan pahalıya göster.
-  useEffect(() => {
-    let iptal = false
+  // Ürünü id'siyle TAZE sorgula: marketfiyati'nin EN GÜNCEL fiyatını uygula.
+  // (Önceden yalnız daha fazla market bulunca güncelliyordu; bu yüzden aynı
+  // market sayısında tıklama anındaki eski fiyat kalıyordu — düzeltildi.)
+  async function fiyatCek() {
     const konum = getSnapshot().konum
     setZenginlestiriliyor(true)
-    urunGetirById(urunProp.id, konum)
-      .then((res) => {
-        if (iptal) return
-        const list = normalize(res, konum)
-        const bul = list.find((x) => x.id === urunProp.id) || list[0]
-        // Daha fazla market bulduysak göster
-        if (bul && (bul.depots?.length || 0) > (urunProp.depots?.length || 0)) setUrun(bul)
-      })
-      .catch(() => {})
-      .finally(() => { if (!iptal) setZenginlestiriliyor(false) })
-    return () => { iptal = true }
-  }, [urunProp.id])
+    try {
+      const res = await urunGetirById(urunProp.id, konum)
+      const list = normalize(res, konum)
+      const bul = list.find((x) => x.id === urunProp.id) || list[0]
+      if (bul && (bul.depots?.length || 0) > 0) setUrun(bul) // taze fiyatı her zaman uygula
+    } catch { /* yok */ }
+    finally { setZenginlestiriliyor(false) }
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fiyatCek() }, [urunProp.id])
 
   const fav = favoriMi(urun.id)
   const sepette = sepetteMi(urun.id)
@@ -157,7 +155,9 @@ export default function Product({ urun: urunProp, onBack, user }) {
         <div className="text-sm font-medium text-base-content/60 px-1 flex items-center gap-2">
           Marketlere göre fiyatlar
           {urun.marketCount > 0 && <span className="badge badge-ghost badge-sm">{urun.marketCount} market</span>}
-          {zenginlestiriliyor && <Loader2 size={14} className="animate-spin text-base-content/40" />}
+          <button onClick={fiyatCek} disabled={zenginlestiriliyor} className="ml-auto btn btn-ghost btn-xs gap-1 text-base-content/50" title="Fiyatları yenile">
+            {zenginlestiriliyor ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} yenile
+          </button>
         </div>
         {urun.depots.map((d, i) => (
           <div key={i} className={`bg-base-100 rounded-xl p-3 border flex items-center justify-between gap-2 ${i === 0 ? 'border-primary/50 ring-1 ring-primary/20' : 'border-base-300'}`}>
