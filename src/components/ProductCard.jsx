@@ -17,7 +17,15 @@ export default function ProductCard({ urun, onClick }) {
         {urun.imageUrl ? (
           <img src={urun.imageUrl} alt="" loading="lazy" className="w-full h-full object-contain group-hover:scale-[1.03] transition" />
         ) : (
-          <div className="w-full h-full grid place-items-center text-base-content/30 text-xs">görsel yok</div>
+          <div className="w-full h-full grid place-items-center bg-gradient-to-br from-primary/5 to-secondary/5">
+            <div className="flex flex-col items-center gap-1.5 opacity-80">
+              <img src="/favicon.svg" alt="" className="w-11 h-11 rounded-xl shadow-sm" />
+              <span className="text-xs font-extrabold tracking-tight leading-none">
+                <span className="text-primary">nerede</span><span className="text-secondary">ucuz</span>
+              </span>
+              <span className="text-[9px] text-base-content/40 leading-none">görsel yok</span>
+            </div>
+          </div>
         )}
         {tasarruf > 0 && (
           <span className="absolute top-2 left-2 text-[10px] font-bold bg-secondary text-secondary-content rounded-full px-2 py-0.5">%{tasarruf} fark</span>

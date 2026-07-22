@@ -84,7 +84,10 @@ export default function Product({ urun: urunProp, onBack, user }) {
           {urun.imageUrl ? (
             <img src={urun.imageUrl} alt="" className="w-full h-full object-contain" />
           ) : (
-            <span className="text-base-content/30 text-xs">görsel yok</span>
+            <div className="flex flex-col items-center gap-1 opacity-80">
+              <img src="/favicon.svg" alt="" className="w-8 h-8 rounded-lg" />
+              <span className="text-[9px] font-extrabold leading-none"><span className="text-primary">nerede</span><span className="text-secondary">ucuz</span></span>
+            </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
