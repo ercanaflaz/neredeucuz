@@ -52,6 +52,7 @@ export default function Home({ onSelect }) {
   const [marketFiltre, setMarketFiltre] = useState(null)
   const [urunMarka, setUrunMarka] = useState(null) // ürün markası filtresi (Sütaş, Coca-Cola...)
   const [sadeceKampanya, setSadeceKampanya] = useState(false)
+  const [turFiltre, setTurFiltre] = useState(null)  // alt tür filtresi (beyaz, kaşar, üçgen...)
   const [barkodUrunId, setBarkodUrunId] = useState(null) // barkodla taranan ürün (başta gösterilir)
   // Canlı arama önerileri
   const [oneriler, setOneriler] = useState([])
@@ -63,7 +64,7 @@ export default function Home({ onSelect }) {
     const k = (kelime ?? q).trim()
     if (!k) return
     const konum = getSnapshot().konum
-    setQ(k); setAktifKelime(k); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setBarkodUrunId(null)
+    setQ(k); setAktifKelime(k); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setBarkodUrunId(null)
     setToplam(0); setSayfa(0)
     oneriKapat()
     setYukleniyor(true); setHata(null); setBilgi(''); setAranan(k)
@@ -104,7 +105,7 @@ export default function Home({ onSelect }) {
     setTarayici(false)
     try { izle('barkod', { baslik: String(kod), detay: { kod: String(kod) } }) } catch { /* yok */ }
     const konum = getSnapshot().konum
-    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setToplam(0); setSayfa(0)
+    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setToplam(0); setSayfa(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
     try {
       const res = await searchByBarcode(kod, konum)
@@ -181,7 +182,7 @@ export default function Home({ onSelect }) {
   // Aramayı temizle → ana sayfa görünümüne dön.
   function aramayiTemizle() {
     setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([]); setToplam(0); setSayfa(0)
-    setHata(null); setBilgi(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setBarkodUrunId(null)
+    setHata(null); setBilgi(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setBarkodUrunId(null)
     oneriKapat()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -222,8 +223,29 @@ export default function Home({ onSelect }) {
     return [...s].sort((a, b) => a.localeCompare(b, 'tr'))
   }, [sonuclar])
 
+  // Alt türler: sonuç başlıklarından sık geçen anlamlı kelimeler (marka ve arama
+  // kelimeleri hariç). Ör. "peynir" → beyaz, kaşar, üçgen, krem, taze, süzme...
+  const turler = useMemo(() => {
+    const STOP = new Set(['gr', 'kg', 'ml', 'lt', 'adet', 'paket', 'gram', 've', 'ile', 'light', 'için', 'yağlı', 'yagli'])
+    const aramaKel = new Set((aktifKelime || '').toLocaleLowerCase('tr').split(/\s+/).filter(Boolean))
+    const markaKel = new Set()
+    sonuclar.forEach((u) => String(u.brand || '').toLocaleLowerCase('tr').split(/\s+/).forEach((w) => w && markaKel.add(w)))
+    const say = new Map()
+    for (const u of sonuclar) {
+      const kelimeler = new Set(
+        String(u.title || '').toLocaleLowerCase('tr').replace(/[0-9]+/g, ' ').split(/\s+/).filter(Boolean),
+      )
+      for (const w of kelimeler) {
+        if (w.length < 3 || aramaKel.has(w) || markaKel.has(w) || STOP.has(w)) continue
+        say.set(w, (say.get(w) || 0) + 1)
+      }
+    }
+    return [...say.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([w, n]) => ({ w, n }))
+  }, [sonuclar, aktifKelime])
+
   const gosterilen = useMemo(() => {
     let list = sonuclar
+    if (turFiltre) list = list.filter((u) => String(u.title || '').toLocaleLowerCase('tr').includes(turFiltre))
     if (marketFiltre) list = list.filter((u) => u.depots.some((d) => marka(d.market).ad === marketFiltre))
     if (urunMarka) list = list.filter((u) => u.brand === urunMarka)
     if (sadeceKampanya) list = list.filter((u) => u.kampanyali)
@@ -233,7 +255,7 @@ export default function Home({ onSelect }) {
       list = [...list].sort((a, b) => (a.minPrice ?? 1e9) - (b.minPrice ?? 1e9))
     }
     return list
-  }, [sonuclar, marketFiltre, urunMarka, siralama, sadeceKampanya])
+  }, [sonuclar, turFiltre, marketFiltre, urunMarka, siralama, sadeceKampanya])
 
   const kampanyaSayisi = useMemo(() => sonuclar.filter((u) => u.kampanyali).length, [sonuclar])
 
@@ -466,6 +488,27 @@ export default function Home({ onSelect }) {
               {gosterilen.length !== sonuclar.length && ` · ${gosterilen.length} gösteriliyor`}
             </span>
           </div>
+
+          {/* Tür çipleri — sonuçlardan çıkarılan alt türler (beyaz, kaşar, üçgen...) */}
+          {turler.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1">
+              <button
+                onClick={() => setTurFiltre(null)}
+                className={`px-3 py-1 rounded-full text-[12px] font-medium whitespace-nowrap border transition ${!turFiltre ? 'bg-primary text-primary-content border-primary' : 'bg-base-100 text-base-content/70 border-base-300 hover:bg-base-200'}`}
+              >
+                Tümü
+              </button>
+              {turler.map((t) => (
+                <button
+                  key={t.w}
+                  onClick={() => setTurFiltre((o) => (o === t.w ? null : t.w))}
+                  className={`px-3 py-1 rounded-full text-[12px] font-medium whitespace-nowrap border transition capitalize ${turFiltre === t.w ? 'bg-primary text-primary-content border-primary' : 'bg-base-100 text-base-content/70 border-base-300 hover:bg-base-200'}`}
+                >
+                  {t.w} <span className={turFiltre === t.w ? 'text-primary-content/70' : 'text-base-content/40'}>{t.n}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Sıralama + market filtresi */}
           <div className="flex items-center gap-2 flex-wrap text-xs">
