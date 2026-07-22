@@ -133,7 +133,7 @@ function birlestir(oncelikli, digeri) {
 export async function favorileriYukle(userId) {
   cache.favoriler = lsGet(LS_FAV, []); emit()
   if (!userId) return
-  const { data, error } = await seDene(() => supabase.from('favoriler').select('*').order('eklendi', { ascending: false }))
+  const { data, error } = await seDene(() => supabase.from('favoriler').select('*').eq('kullanici_id', userId).order('eklendi', { ascending: false }))
   if (!error && Array.isArray(data)) {
     cache.favoriler = birlestir(data, cache.favoriler)
     lsSet(LS_FAV, cache.favoriler); emit()
@@ -158,7 +158,7 @@ export function favoriMi(urunId) {
 export async function alarmlariYukle(userId) {
   cache.alarmlar = lsGet(LS_ALARM, []); emit()
   if (!userId) return
-  const { data, error } = await seDene(() => supabase.from('fiyat_alarmlari').select('*').order('olusturuldu', { ascending: false }))
+  const { data, error } = await seDene(() => supabase.from('fiyat_alarmlari').select('*').eq('kullanici_id', userId).order('olusturuldu', { ascending: false }))
   if (!error && Array.isArray(data)) {
     cache.alarmlar = birlestir(data, cache.alarmlar)
     lsSet(LS_ALARM, cache.alarmlar); emit()
@@ -184,7 +184,7 @@ function sepetKaydet() { lsSet(LS_SEPET, cache.sepet) }
 export async function sepetiYukle(userId) {
   cache.sepet = lsGet(LS_SEPET, []); emit()
   if (!userId) return
-  const { data, error } = await seDene(() => supabase.from('sepet').select('*').order('eklendi', { ascending: true }))
+  const { data, error } = await seDene(() => supabase.from('sepet').select('*').eq('kullanici_id', userId).order('eklendi', { ascending: true }))
   if (!error && Array.isArray(data) && data.length) {
     const remote = data.map((r) => ({ id: r.id, urun_id: r.urun_id, baslik: r.baslik, marka: r.marka, gorsel: r.gorsel, adet: r.adet, depots: r.depots ?? [] }))
     cache.sepet = birlestir(remote, cache.sepet)
