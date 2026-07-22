@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LogOut, Mail, ShieldCheck, X } from 'lucide-react'
 import { kayitOl, girisYap, cikisYap, googleIleGiris } from '../lib/auth'
+import BildirimAc from '../components/BildirimAc'
 
 export default function Login({ user }) {
   const [mod, setMod] = useState('giris') // giris | kayit
@@ -48,6 +49,7 @@ export default function Login({ user }) {
           <div className="font-medium">{user.email}</div>
           <div className="text-xs text-base-content/50">Giriş yapıldı</div>
         </div>
+        <BildirimAc />
         <button onClick={cikisYap} className="btn btn-outline w-full">
           <LogOut size={18} /> Çıkış yap
         </button>

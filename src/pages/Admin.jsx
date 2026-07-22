@@ -10,6 +10,7 @@ import { getAuth, cikisYap } from '../lib/auth'
 import { tarih } from '../lib/format'
 import ReklamYonetimi from '../components/ReklamYonetimi'
 import VideoYonetimi from '../components/VideoYonetimi'
+import BildirimYonetimi from '../components/BildirimYonetimi'
 
 // ======================= YARDIMCILAR =======================
 const ULKE_AD = {
@@ -306,7 +307,7 @@ export default function Admin() {
             {bolum === 'goruntuleme' && <Goruntuleme olaylar={olaylar} v={v} />}
             {bolum === 'arama' && <Aramalar olaylar={olaylar} v={v} />}
             {bolum === 'uye' && <Kullanicilar v={v} />}
-            {bolum === 'icerik' && <div className="space-y-4"><ReklamYonetimi /><VideoYonetimi /></div>}
+            {bolum === 'icerik' && <div className="space-y-4"><BildirimYonetimi /><ReklamYonetimi /><VideoYonetimi /></div>}
             {bolum === 'ayar' && <Ayarlar />}
           </>
         )}

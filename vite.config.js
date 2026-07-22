@@ -4,12 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { geminiCalis } from './functions/api/gemini.js'
 import { barkodokuCoz } from './functions/api/barkod/[[path]].js'
 import { olayKaydet } from './functions/api/izle.js'
+import { pushGonderCalis } from './functions/api/push-gonder.js'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss(), geminiDev(env), barkodDev(env), izleDev(env)],
+    plugins: [react(), tailwindcss(), geminiDev(env), barkodDev(env), izleDev(env), pushDev(env)],
     server: {
       // Yerelde CORS'u aşmak için marketfiyati API'sine proxy (yayında Pages Function).
       proxy: {
@@ -41,6 +42,33 @@ function barkodDev(env) {
           res.statusCode = 502
           res.end(JSON.stringify({ bulundu: false, hata: String(e) }))
         }
+      })
+    },
+  }
+}
+
+// Yerel geliştirmede /api/push-gonder'i çalıştırır (yayında Cloudflare fonksiyonu yapar).
+// .env'de VAPID_PRIVATE_JWK gerekir; token Authorization header'ından okunur.
+function pushDev(env) {
+  return {
+    name: 'push-dev',
+    configureServer(server) {
+      server.middlewares.use('/api/push-gonder', (req, res) => {
+        res.setHeader('content-type', 'application/json')
+        if (req.method !== 'POST') { res.statusCode = 405; return res.end('{}') }
+        const token = String(req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
+        let body = ''
+        req.on('data', (c) => (body += c))
+        req.on('end', async () => {
+          try {
+            const out = await pushGonderCalis(env, token, JSON.parse(body || '{}'))
+            res.statusCode = out.status
+            res.end(JSON.stringify(out.body))
+          } catch (e) {
+            res.statusCode = 502
+            res.end(JSON.stringify({ error: 'x', detail: String(e) }))
+          }
+        })
       })
     },
   }
