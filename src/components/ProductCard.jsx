@@ -33,10 +33,6 @@ export default function ProductCard({ urun, onClick }) {
         {urun.kampanyali && (
           <span className="absolute top-2 right-2 text-[10px] font-semibold bg-warning text-warning-content rounded-full px-1.5 py-0.5">🏷️</span>
         )}
-        {/* Listeye ekle — masaüstünde görselin üzerine gelince */}
-        <div className="absolute inset-x-2 bottom-2 opacity-0 group-hover:opacity-100 transition" onClick={(e) => e.stopPropagation()}>
-          <ListeyeEkle urun={urun} />
-        </div>
       </div>
 
       {/* Bilgi */}
@@ -60,6 +56,10 @@ export default function ProductCard({ urun, onClick }) {
             {urun.cheapest?.unitPrice && (
               <div className="text-[10px] text-base-content/40 text-right leading-none pb-0.5">{urun.cheapest.unitPrice}</div>
             )}
+          </div>
+          {/* Listeye ekle — her zaman görünen, belirgin buton */}
+          <div onClick={(e) => e.stopPropagation()}>
+            <ListeyeEkle urun={urun} variant="kart" />
           </div>
         </div>
       </div>

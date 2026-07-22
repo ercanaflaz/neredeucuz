@@ -39,6 +39,10 @@ export default function ListeyeEkle({ urun, variant = 'mini', className = '' }) 
         <button onClick={ac} className={`inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline ${className}`}>
           <ListPlus size={13} /> Listeye ekle
         </button>
+      ) : variant === 'kart' ? (
+        <button onClick={ac} className={`w-full inline-flex items-center justify-center gap-1.5 text-sm font-bold text-primary bg-primary/10 hover:bg-primary/20 active:scale-[0.98] rounded-xl py-2 transition ${className}`}>
+          <ListPlus size={16} /> Listeye ekle
+        </button>
       ) : (
         <button onClick={ac} className={`btn btn-outline ${className}`}>
           <ListPlus size={18} /> Listeye ekle
