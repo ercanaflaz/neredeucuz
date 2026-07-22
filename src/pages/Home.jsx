@@ -11,7 +11,7 @@ import { barkodCoz } from '../lib/barkod'
 import { tl } from '../lib/format'
 import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla } from '../lib/store'
 import { izle } from '../lib/izleme'
-import { ReklamSerit } from '../components/ReklamRail'
+import ReklamYuva from '../components/ReklamYuva'
 import AiAsistan from '../components/AiAsistan'
 import NasilKullanilir from '../components/NasilKullanilir'
 import UygulamayiYukle from '../components/UygulamayiYukle'
@@ -357,7 +357,8 @@ export default function Home({ onSelect }) {
               </button>
             ))}
           </div>
-          <ReklamSerit konum="anasayfa" />
+          {/* Reklam: Kategoriler altı */}
+          <ReklamYuva konum="anasayfa-1" adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
         </>
       )}
 
@@ -387,6 +388,9 @@ export default function Home({ onSelect }) {
           {KAPSANAN.map((m) => <MarketBadge key={m} market={m} size="sm" />)}
         </div>
       )}
+
+      {/* Reklam: Marketler altı (En çok aranan üstü) */}
+      {!aramaVar && <ReklamYuva konum="anasayfa-2" adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />}
 
       {/* Konum kapalı uyarısı */}
       {store.konumDurumu !== 'tamam' && store.konumDurumu !== 'isteniyor' && (

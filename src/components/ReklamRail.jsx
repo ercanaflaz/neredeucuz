@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { subscribeReklam, getReklam, konumReklamlari } from '../lib/reklam'
 
 // Tek bir reklam afişi (resim ya da html)
-function Afis({ r }) {
+export function Afis({ r }) {
   const govde = r.tip === 'html' && r.html
     ? <div dangerouslySetInnerHTML={{ __html: r.html }} />
     : r.gorsel
