@@ -53,6 +53,10 @@ export default function Login({ user }) {
 
   return (
     <div className="max-w-sm mx-auto space-y-4">
+      <div className="flex flex-col items-center gap-2 pt-2">
+        <img src="/favicon.svg" alt="neredeucuz" className="w-14 h-14 rounded-2xl shadow-sm" />
+        <div className="font-extrabold text-xl"><span className="text-primary">nerede</span><span className="text-secondary">ucuz</span></div>
+      </div>
       <div className="flex bg-base-200 rounded-xl p-1">
         <button onClick={() => setMod('giris')} className={`flex-1 py-2 rounded-lg text-sm font-medium ${mod === 'giris' ? 'bg-base-100 shadow' : 'text-base-content/60'}`}>Giriş</button>
         <button onClick={() => setMod('kayit')} className={`flex-1 py-2 rounded-lg text-sm font-medium ${mod === 'kayit' ? 'bg-base-100 shadow' : 'text-base-content/60'}`}>Kayıt ol</button>
