@@ -164,10 +164,13 @@ export default function Product({ urun: urunProp, onBack, user }) {
             <div className="min-w-0 flex items-center gap-2">
               <MarketBadge market={d.market} size="sm" />
               <div className="min-w-0">
-                <div className="text-xs text-base-content/50 truncate">
-                  {d.depotName}{d.indexTime ? ` · ${tarih(d.indexTime)}` : ''}
+                <div className="text-xs font-medium truncate">{d.depotName || d.market}</div>
+                <div className="text-[11px] text-base-content/40 truncate">
+                  {d.mesafe != null && `${d.mesafe.toFixed(1)} km`}
+                  {d.mesafe != null && d.indexTime ? ' · ' : ''}
+                  {d.indexTime ? tarih(d.indexTime) : ''}
+                  {i === 0 ? <span className="text-primary font-semibold"> · en ucuz</span> : ''}
                 </div>
-                {i === 0 && <div className="text-[11px] text-primary font-semibold">en ucuz</div>}
               </div>
             </div>
             <div className="text-right shrink-0 pl-2">
