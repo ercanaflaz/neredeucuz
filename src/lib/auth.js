@@ -81,4 +81,6 @@ export async function facebookIleGiris() {
 
 export async function cikisYap() {
   await supabase.auth.signOut()
+  // Çıkışta ana sayfaya dön (admin/hesap sayfasında kalmasın)
+  try { window.location.hash = '#/' } catch { /* yok */ }
 }
