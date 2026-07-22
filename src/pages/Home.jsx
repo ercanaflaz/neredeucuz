@@ -314,14 +314,18 @@ export default function Home({ onSelect }) {
             </div>
           </div>
 
-          {/* Güven şeridi + Nasıl kullanılır */}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* Güven şeridi */}
+          <div className="mt-4 flex flex-wrap gap-2">
             {[['🏪', '7 market'], ['📦', '50.000+ ürün'], ['⚡', 'anlık fiyat'], ['🆓', 'ücretsiz']].map(([e, t]) => (
               <span key={t} className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur rounded-full px-3 py-1 text-xs font-medium">
                 <span>{e}</span> {t}
               </span>
             ))}
-            <NasilKullanilir className="text-xs !py-1 !px-3 ml-auto" />
+          </div>
+
+          {/* Nasıl kullanılır? — ortalı, belirgin */}
+          <div className="mt-5 flex justify-center">
+            <NasilKullanilir />
           </div>
         </div>
       </div>

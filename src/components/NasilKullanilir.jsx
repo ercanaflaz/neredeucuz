@@ -29,9 +29,9 @@ export default function NasilKullanilir({ className = '' }) {
     <>
       <button
         onClick={() => setAcik(true)}
-        className={`inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 text-white font-semibold px-4 py-2 backdrop-blur transition ${className}`}
+        className={`inline-flex items-center gap-2 rounded-full bg-white text-primary font-bold text-sm sm:text-base px-6 py-3 shadow-lg shadow-black/15 ring-2 ring-white/70 hover:scale-[1.04] active:scale-95 transition ${className}`}
       >
-        <PlayCircle size={18} /> Nasıl kullanılır?
+        <PlayCircle size={22} className="text-secondary" /> Nasıl kullanılır? · Video
       </button>
 
       {acik && (
