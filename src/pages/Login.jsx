@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogOut, Mail } from 'lucide-react'
+import { LogOut, Mail, ShieldCheck, X } from 'lucide-react'
 import { kayitOl, girisYap, cikisYap, googleIleGiris } from '../lib/auth'
 
 export default function Login({ user }) {
@@ -9,6 +9,8 @@ export default function Login({ user }) {
   const [hata, setHata] = useState(null)
   const [bilgi, setBilgi] = useState(null)
   const [bekle, setBekle] = useState(false)
+  const [kvkk, setKvkk] = useState(false)
+  const [kvkkAcik, setKvkkAcik] = useState(false)
 
   async function googleGiris() {
     setHata(null)
@@ -21,7 +23,9 @@ export default function Login({ user }) {
 
   async function gonder(e) {
     e.preventDefault()
-    setHata(null); setBilgi(null); setBekle(true)
+    setHata(null); setBilgi(null)
+    if (mod === 'kayit' && !kvkk) { setHata('Devam etmek için KVKK Aydınlatma Metni’ni onaylamalısın.'); return }
+    setBekle(true)
     try {
       if (mod === 'kayit') {
         await kayitOl(email.trim(), sifre)
@@ -77,6 +81,14 @@ export default function Login({ user }) {
       <form onSubmit={gonder} className="space-y-3">
         <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-posta" className="input input-bordered w-full" autoComplete="email" />
         <input type="password" required minLength={6} value={sifre} onChange={(e) => setSifre(e.target.value)} placeholder="Şifre (en az 6 karakter)" className="input input-bordered w-full" autoComplete={mod === 'kayit' ? 'new-password' : 'current-password'} />
+        {mod === 'kayit' && (
+          <label className="flex items-start gap-2 text-xs text-base-content/70 cursor-pointer">
+            <input type="checkbox" checked={kvkk} onChange={(e) => setKvkk(e.target.checked)} className="checkbox checkbox-sm checkbox-primary mt-0.5" />
+            <span>
+              <button type="button" onClick={() => setKvkkAcik(true)} className="link link-primary">KVKK Aydınlatma Metni</button>'ni okudum, kişisel verilerimin işlenmesini onaylıyorum.
+            </span>
+          </label>
+        )}
         <button type="submit" disabled={bekle} className="btn btn-primary w-full">
           {bekle ? '...' : mod === 'kayit' ? 'Kayıt ol' : 'Giriş yap'}
         </button>
@@ -88,6 +100,29 @@ export default function Login({ user }) {
       <p className="text-xs text-base-content/50 text-center">
         Giriş isteğe bağlıdır — favori, alarm ve sepetin girişsiz de çalışır. Giriş yaparsan bunlar <b>tüm cihazlarında</b> senkron olur.
       </p>
+      <p className="text-[11px] text-base-content/40 text-center">
+        Devam ederek <button type="button" onClick={() => setKvkkAcik(true)} className="underline">KVKK Aydınlatma Metni</button>'ni kabul etmiş olursun.
+      </p>
+
+      {kvkkAcik && (
+        <div className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4" onClick={() => setKvkkAcik(false)}>
+          <div className="bg-base-100 rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /> KVKK Aydınlatma Metni</h3>
+              <button onClick={() => setKvkkAcik(false)} className="btn btn-ghost btn-sm btn-circle"><X size={18} /></button>
+            </div>
+            <div className="text-xs text-base-content/70 space-y-2 leading-relaxed">
+              <p>neredeucuz olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında kişisel verilerinizin güvenliğine önem veriyoruz.</p>
+              <p><b>Toplanan veriler:</b> E-posta adresiniz, oluşturduğunuz favori/liste/sepet bilgileri ve anonim kullanım verileri (baktığınız ürünler, aramalar).</p>
+              <p><b>İşleme amacı:</b> Hesabınızı oluşturmak, verilerinizi cihazlarınız arasında senkronlamak, size özel öneri ve fiyat bildirimleri sunmak, hizmeti iyileştirmek.</p>
+              <p><b>Konum:</b> Konum bilginiz yalnızca yakın market fiyatlarını göstermek için anlık kullanılır, <b>saklanmaz</b>.</p>
+              <p><b>Paylaşım:</b> Verileriniz pazarlama amacıyla üçüncü kişilerle paylaşılmaz.</p>
+              <p><b>Haklarınız:</b> Dilediğiniz zaman hesabınızı ve verilerinizi silebilir, verilerinize erişim talep edebilirsiniz. Talepleriniz için: <b>aflazercan@gmail.com</b></p>
+            </div>
+            <button onClick={() => { setKvkk(true); setKvkkAcik(false) }} className="btn btn-primary btn-sm w-full">Okudum, onaylıyorum</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

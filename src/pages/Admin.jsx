@@ -3,10 +3,10 @@ import {
   Shield, Users, Heart, ShoppingCart, Bell, Wand2, Search as SearchIcon,
   RefreshCw, Loader2, TrendingUp, Package, LayoutDashboard, Radio, Globe,
   ArrowUpRight, Eye, UserCircle, Megaphone, Settings, Menu, X,
-  Smartphone, Monitor, Tablet, Clock, MapPin, ScanLine, ListChecks, ChevronDown,
+  Smartphone, Monitor, Tablet, Clock, MapPin, ScanLine, ListChecks, ChevronDown, LogOut,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { getAuth } from '../lib/auth'
+import { getAuth, cikisYap } from '../lib/auth'
 import { tarih } from '../lib/format'
 import ReklamYonetimi from '../components/ReklamYonetimi'
 import VideoYonetimi from '../components/VideoYonetimi'
@@ -225,6 +225,17 @@ export default function Admin() {
           )}
         </button>
       ))}
+      {/* Çıkış */}
+      <div className="mt-2 pt-2 border-t border-base-200">
+        <div className="px-3 pb-1.5 text-[11px] text-base-content/40 truncate">{user?.email}</div>
+        <button
+          onClick={() => cikisYap()}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-left text-error hover:bg-error/10 transition"
+        >
+          <LogOut size={18} className="shrink-0" />
+          <span className="flex-1">Çıkış yap</span>
+        </button>
+      </div>
     </nav>
   )
 
