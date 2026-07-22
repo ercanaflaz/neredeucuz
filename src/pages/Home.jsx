@@ -1,9 +1,10 @@
 import { useState, useMemo, useSyncExternalStore, useEffect, useRef, lazy, Suspense } from 'react'
-import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft, RefreshCw } from 'lucide-react'
+import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft, RefreshCw, LayoutGrid, ChevronDown } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import AdSlot from '../components/AdSlot'
 import MarketBadge from '../components/MarketBadge'
-import { POPULER } from '../data/populer'
+import { KATEGORILER } from '../data/kategoriler'
+import { populerAramalariGetir } from '../lib/populerAramalar'
 import { marka } from '../lib/markets'
 import { searchByKeyword, searchByBarcode, normalize } from '../lib/marketfiyati'
 import { urunOnerileri } from '../lib/oneriler'
@@ -16,14 +17,17 @@ import AiAsistan from '../components/AiAsistan'
 import NasilKullanilir from '../components/NasilKullanilir'
 import UygulamayiYukle from '../components/UygulamayiYukle'
 
-const KATEGORILER = [
-  { ad: 'Temel gıda', terim: 'pirinç', emoji: '🍚', grad: 'from-amber-400 to-orange-500' },
-  { ad: 'Süt & Kahvaltı', terim: 'süt', emoji: '🥛', grad: 'from-sky-400 to-blue-500' },
-  { ad: 'Temizlik', terim: 'deterjan', emoji: '🧴', grad: 'from-cyan-400 to-teal-500' },
-  { ad: 'İçecek', terim: 'çay', emoji: '☕', grad: 'from-rose-400 to-pink-500' },
-  { ad: 'Atıştırmalık', terim: 'bisküvi', emoji: '🍪', grad: 'from-violet-400 to-purple-500' },
-  { ad: 'Bebek', terim: 'bebek bezi', emoji: '🍼', grad: 'from-emerald-400 to-green-500' },
-]
+// Kategori alt-başlık paneli aksan renkleri (Tailwind purge için tam sınıf adları).
+const AKSAN = {
+  green:   { border: 'border-green-200',  cip: 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100' },
+  rose:    { border: 'border-rose-200',   cip: 'bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100' },
+  sky:     { border: 'border-sky-200',    cip: 'bg-sky-50 border-sky-200 text-sky-800 hover:bg-sky-100' },
+  amber:   { border: 'border-amber-200',  cip: 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100' },
+  pink:    { border: 'border-pink-200',   cip: 'bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100' },
+  violet:  { border: 'border-violet-200', cip: 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100' },
+  teal:    { border: 'border-teal-200',   cip: 'bg-teal-50 border-teal-200 text-teal-800 hover:bg-teal-100' },
+  emerald: { border: 'border-emerald-200',cip: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100' },
+}
 
 // Barkod tarayıcı (html5-qrcode) sadece gerektiğinde yüklensin — ilk açılış hızlı.
 const BarcodeScanner = lazy(() => import('../components/BarcodeScanner'))
@@ -61,6 +65,16 @@ export default function Home({ onSelect }) {
   const [oneriYaziyor, setOneriYaziyor] = useState(false) // kutuda yazılıyor → açılır liste göster
   const [oneriYukleniyor, setOneriYukleniyor] = useState(false)
   const zamanlayici = useRef(null)
+  // Kategoriler (açık olan alt-başlık paneli) + dinamik "en çok aranan"
+  const [acikKat, setAcikKat] = useState(null)     // açık ana kategori adı
+  const [populer, setPopuler] = useState([])       // gerçek arama verisinden
+
+  // "En çok aranan"ı gerçek arama kayıtlarından yükle (yoksa statik yedek).
+  useEffect(() => {
+    let iptal = false
+    populerAramalariGetir(12).then((liste) => { if (!iptal) setPopuler(liste) })
+    return () => { iptal = true }
+  }, [])
 
   // Sonuç başlıklarından alt tür kelimelerini çıkar (marka + arama kelimeleri hariç).
   function turleriHesapla(list, kelime) {
@@ -427,22 +441,62 @@ export default function Home({ onSelect }) {
         </button>
       )}
 
-      {/* Bento kategoriler + AI asistan + anasayfa reklam şeridi */}
+      {/* Kategoriler (renkli kutular) + alt başlıklar + AI asistan + reklam */}
       {!aramaVar && (
         <>
           <AiAsistan yeniListe />
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-            {KATEGORILER.map((k) => (
-              <button
-                key={k.ad}
-                onClick={() => aramaYap(k.terim)}
-                className={`rounded-3xl p-4 bg-gradient-to-br ${k.grad} text-white text-left shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition`}
-              >
-                <div className="text-2xl">{k.emoji}</div>
-                <div className="font-bold text-sm mt-2 leading-tight">{k.ad}</div>
-              </button>
-            ))}
-          </div>
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <LayoutGrid size={18} className="text-primary" />
+              <h2 className="font-bold">Kategoriler</h2>
+              <span className="text-xs text-base-content/50">Bir kategori seç, alt başlıkları gör</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {KATEGORILER.map((k) => {
+                const acik = acikKat === k.ad
+                return (
+                  <button
+                    key={k.ad}
+                    onClick={() => setAcikKat(acik ? null : k.ad)}
+                    aria-expanded={acik}
+                    className={`relative rounded-3xl p-4 bg-gradient-to-br ${k.grad} text-white text-left shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition ${acik ? 'ring-2 ring-white/80 ring-offset-2 ring-offset-base-100' : ''}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="text-2xl">{k.emoji}</div>
+                      <ChevronDown size={18} className={`opacity-80 transition-transform ${acik ? 'rotate-180' : ''}`} />
+                    </div>
+                    <div className="font-bold text-sm mt-2 leading-tight">{k.ad}</div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Açık kategorinin alt başlıkları — tıklayınca aranır */}
+            {acikKat && (() => {
+              const k = KATEGORILER.find((x) => x.ad === acikKat)
+              if (!k) return null
+              return (
+                <div className={`rounded-2xl border-2 bg-base-100 p-3.5 ${AKSAN[k.renk]?.border || 'border-base-300'}`}>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="text-lg">{k.emoji}</span>
+                    <span className="font-semibold text-sm">{k.ad}</span>
+                    <span className="text-xs text-base-content/40">— ne arıyorsun?</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {k.alt.map((a) => (
+                      <button
+                        key={a}
+                        onClick={() => aramaYap(a)}
+                        className={`px-3.5 py-2 rounded-full text-sm font-medium border transition active:scale-95 ${AKSAN[k.renk]?.cip || 'bg-base-200 border-base-300 hover:bg-base-300'}`}
+                      >
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+          </section>
           {/* Reklam: Kategoriler altı */}
           <ReklamYuva konum="anasayfa-1" adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
         </>
@@ -585,26 +639,24 @@ export default function Home({ onSelect }) {
         </div>
       )}
 
-      {/* EN ÇOK ARANANLAR */}
-      {!aramaVar && (
+      {/* EN ÇOK ARANANLAR — gerçek arama verisinden dinamik */}
+      {!aramaVar && populer.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Flame size={18} className="text-secondary" />
             <h2 className="font-bold">En çok aranan ürünler</h2>
           </div>
-          <p className="text-xs text-base-content/50 -mt-1">Dokun, o ürünün en ucuz olduğu marketi anında gör.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-            {POPULER.map((p) => (
+          <p className="text-xs text-base-content/50 -mt-1">Kullanıcıların en çok aradığı ürünler — dokun, en ucuz marketi anında gör.</p>
+          <div className="flex flex-wrap gap-2">
+            {populer.map((p, i) => (
               <button
                 key={p.terim}
                 onClick={() => aramaYap(p.terim)}
-                className="bg-base-100 rounded-2xl border border-base-300 p-3 text-left hover:border-primary/50 hover:shadow-sm active:scale-[0.98] transition flex items-center gap-3"
+                className="group inline-flex items-center gap-2 bg-base-100 rounded-full border border-base-300 pl-2.5 pr-3.5 py-2 hover:border-primary/50 hover:shadow-sm active:scale-[0.97] transition"
               >
-                <span className="text-2xl">{p.emoji}</span>
-                <span className="min-w-0">
-                  <span className="block font-medium leading-tight truncate">{p.ad}</span>
-                  <span className="block text-[11px] text-base-content/50 truncate">{p.kat}</span>
-                </span>
+                <span className="grid place-items-center w-5 h-5 rounded-full bg-secondary/15 text-secondary text-[11px] font-bold shrink-0">{i + 1}</span>
+                <span className="font-medium text-sm leading-none">{p.emoji ? `${p.emoji} ` : ''}{p.ad}</span>
+                {p.sayi > 1 && <span className="text-[10px] text-base-content/40 leading-none">· {p.sayi}×</span>}
               </button>
             ))}
           </div>
