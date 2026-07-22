@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useEffect, useState, useRef } from 'react'
-import { Home as HomeIcon, Search, Heart, User, ShoppingCart, Shield } from 'lucide-react'
+import { Home as HomeIcon, Search, Heart, User, ShoppingCart, Shield, Bell } from 'lucide-react'
 import { subscribeAuth, getAuth } from './lib/auth'
 import { subscribe, getSnapshot, favorileriYukle, alarmlariYukle, sepetiYukle, konumBaslat } from './lib/store'
 import Home from './pages/Home'
@@ -9,8 +9,8 @@ import Login from './pages/Login'
 import SepetSayfa from './pages/SepetSayfa'
 import Admin from './pages/Admin'
 import ReklamVer from './pages/ReklamVer'
+import Bildirimler from './pages/Bildirimler'
 import LocationGate from './components/LocationGate'
-import GirisOnerisi from './components/GirisOnerisi'
 import ReklamRail from './components/ReklamRail'
 import ReklamCagrisi from './components/ReklamCagrisi'
 import AdSlot from './components/AdSlot'
@@ -28,6 +28,7 @@ const SAYFA_ADI = {
   '/': 'Ana Sayfa',
   '/sepet': 'Akıllı Sepet',
   '/favoriler': 'Favoriler',
+  '/bildirimler': 'Bildirimler',
   '/giris': 'Giriş / Hesap',
   '/admin': 'Admin',
 }
@@ -90,6 +91,7 @@ export default function App() {
   const route = hash.replace(/^#/, '') || '/'
   const sepetAdet = store.sepet.reduce((s, i) => s + (i.adet || 0), 0)
   const anaSayfa = !secili && route === '/'
+  const bildirimAktif = !secili && route.startsWith('/bildirimler')
   const adminSayfa = !secili && route.startsWith('/admin')
   const reklamVerSayfa = !secili && route.startsWith('/reklam-ver')
   const genisSayfa = anaSayfa || adminSayfa || reklamVerSayfa
@@ -113,13 +115,13 @@ export default function App() {
   else if (route.startsWith('/admin')) sayfa = <Admin />
   else if (route.startsWith('/sepet')) sayfa = <SepetSayfa user={auth.user} onSelect={setSecili} />
   else if (route.startsWith('/favoriler')) sayfa = <Favorites onSelect={setSecili} user={auth.user} />
+  else if (route.startsWith('/bildirimler')) sayfa = <Bildirimler user={auth.user} />
   else if (route.startsWith('/giris')) sayfa = <Login user={auth.user} />
   else sayfa = <Home onSelect={setSecili} />
 
   return (
     <div className="min-h-full bg-base-200 flex flex-col">
       <LocationGate />
-      <GirisOnerisi />
       <GizlilikBildirimi />
       <GirisKapisi />
       <BildirimDurtme />
@@ -133,27 +135,40 @@ export default function App() {
           </a>
           <span className="text-xs text-base-content/50 hidden sm:inline">· en ucuz market senin cebinde</span>
 
-          {/* Masaüstü yatay menü */}
-          <nav className="ml-auto hidden md:flex items-center gap-1">
-            {nav.map((n) => (
-              <a
-                key={n.key}
-                href={n.href}
-                onClick={() => setSecili(null)}
-                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  n.active ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'
-                }`}
-              >
-                <span className="relative">
-                  <n.icon size={18} />
-                  {n.badge > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-secondary text-secondary-content text-[10px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center">{n.badge}</span>
-                  )}
-                </span>
-                {n.label}
-              </a>
-            ))}
-          </nav>
+          {/* Sağ taraf: zil (her boyutta) + masaüstü menü */}
+          <div className="ml-auto flex items-center gap-1">
+            <a
+              href="#/bildirimler"
+              onClick={() => setSecili(null)}
+              aria-label="Bildirimler"
+              className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition ${
+                bildirimAktif ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'
+              }`}
+            >
+              <Bell size={18} />
+            </a>
+
+            <nav className="hidden md:flex items-center gap-1">
+              {nav.map((n) => (
+                <a
+                  key={n.key}
+                  href={n.href}
+                  onClick={() => setSecili(null)}
+                  className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                    n.active ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'
+                  }`}
+                >
+                  <span className="relative">
+                    <n.icon size={18} />
+                    {n.badge > 0 && (
+                      <span className="absolute -top-1.5 -right-2 bg-secondary text-secondary-content text-[10px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center">{n.badge}</span>
+                    )}
+                  </span>
+                  {n.label}
+                </a>
+              ))}
+            </nav>
+          </div>
         </div>
       </header>
 

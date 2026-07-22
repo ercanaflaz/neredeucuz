@@ -108,8 +108,15 @@ async function main() {
       const mesaj = {
         baslik: '🎯 Fiyat düştü: ' + (a.baslik || fiyat.baslik || 'ürün'),
         mesaj: `Hedefin ${Number(a.hedef_fiyat).toFixed(2)}₺ — şimdi ${fiyat.min.toFixed(2)}₺'ye indi. Hemen bak!`,
-        url: '/#/',
+        url: '/#/bildirimler',
       }
+      // Uygulama içi bildirim geçmişine yaz (kişiye özel — service key RLS'i baypas eder)
+      try {
+        await fetch(URL_SB + '/rest/v1/bildirimler', {
+          method: 'POST', headers: { ...sbHead, prefer: 'return=minimal' },
+          body: JSON.stringify({ kullanici_id: a.kullanici_id, baslik: mesaj.baslik, govde: mesaj.mesaj, url: '/#/', tur: 'fiyat' }),
+        })
+      } catch { /* geçmiş yazılamazsa alarm yine de gitsin */ }
       for (const s of aboneler) {
         try {
           const durum = await bildirimGonder(s.abonelik, mesaj)

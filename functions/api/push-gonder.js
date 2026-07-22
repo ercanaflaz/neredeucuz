@@ -53,12 +53,22 @@ export async function pushGonderCalis(env, token, govde) {
     headers: admHead,
   }).then((r) => (r.ok ? r.json() : []))
 
+  // Push'a tıklayınca uygulama içindeki Bildirimler sayfası açılsın
   const payload = {
     title: govde.baslik || 'neredeucuz',
     body: govde.mesaj || '',
-    url: govde.url || '/',
+    url: '/#/bildirimler',
     tag: 'duyuru',
   }
+
+  // Uygulama içi geçmişe de yaz (herkese açık duyuru → kullanici_id null)
+  try {
+    await fetch(url + '/rest/v1/bildirimler', {
+      method: 'POST',
+      headers: { ...admHead, 'content-type': 'application/json', prefer: 'return=minimal' },
+      body: JSON.stringify({ kullanici_id: null, baslik: govde.baslik || 'neredeucuz', govde: govde.mesaj || '', url: govde.url || '/#/', tur: 'duyuru' }),
+    })
+  } catch { /* geçmişe yazılamazsa gönderim yine de sürsün */ }
 
   let gonderildi = 0
   const olu = []

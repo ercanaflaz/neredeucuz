@@ -1,6 +1,6 @@
 // neredeucuz service worker — network-first (çevrimdışı yedekli) + push bildirimi.
 // SÜRÜM: her deploy'da eski önbellek temizlensin diye yükselt.
-const CACHE = 'neredeucuz-v3'
+const CACHE = 'neredeucuz-v4'
 const CEKIRDEK = ['/', '/index.html', '/manifest.webmanifest']
 
 self.addEventListener('install', (e) => {
