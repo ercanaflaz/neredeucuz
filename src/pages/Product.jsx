@@ -9,6 +9,7 @@ import {
   subscribe, getSnapshot, favoriMi, favoriEkle, favoriSil, alarmKur,
   sepeteEkle, sepetteMi,
 } from '../lib/store'
+import { girisIste } from '../lib/girisKapisi'
 
 export default function Product({ urun: urunProp, onBack, user }) {
   const store = useSyncExternalStore(subscribe, getSnapshot)
@@ -49,6 +50,7 @@ export default function Product({ urun: urunProp, onBack, user }) {
   }
 
   async function favToggle() {
+    if (!user) { girisIste('favorilere eklemek'); return }
     try {
       if (fav) {
         const kayit = store.favoriler.find((f) => f.urun_id === urun.id)
@@ -62,6 +64,7 @@ export default function Product({ urun: urunProp, onBack, user }) {
   }
 
   async function alarmKaydet() {
+    if (!user) { girisIste('fiyat alarmı kurmak'); return }
     try {
       await alarmKur(urun, Number(hedef))
       setAlarmAcik(false)
@@ -107,7 +110,7 @@ export default function Product({ urun: urunProp, onBack, user }) {
         <button onClick={favToggle} className={`btn flex-1 ${fav ? 'btn-primary' : 'btn-outline'}`}>
           <Heart size={18} className={fav ? 'fill-current' : ''} /> {fav ? 'Favoride' : 'Favorile'}
         </button>
-        <button onClick={() => setAlarmAcik((v) => !v)} className="btn btn-outline flex-1">
+        <button onClick={() => { if (!user) { girisIste('fiyat alarmı kurmak'); return } setAlarmAcik((v) => !v) }} className="btn btn-outline flex-1">
           <Bell size={18} /> Fiyat alarmı
         </button>
       </div>

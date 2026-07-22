@@ -15,6 +15,7 @@ import ReklamCagrisi from './components/ReklamCagrisi'
 import AdSlot from './components/AdSlot'
 import HataSiniri from './components/HataSiniri'
 import GizlilikBildirimi from './components/GizlilikBildirimi'
+import GirisKapisi from './components/GirisKapisi'
 import { listeYukle as akilliListeYukle, listeleriYukle } from './lib/akilliSepet'
 import { reklamlariYukle } from './lib/reklam'
 import { ayarlariYukle } from './lib/ayarlar'
@@ -117,6 +118,7 @@ export default function App() {
     <div className="min-h-full bg-base-200 flex flex-col">
       <LocationGate />
       <GizlilikBildirimi />
+      <GirisKapisi />
 
       {/* ÜST BAR — masaüstünde menü linkleriyle */}
       <header className="bg-base-100 border-b border-base-300 sticky top-0 z-20">

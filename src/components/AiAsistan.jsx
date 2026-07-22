@@ -3,6 +3,8 @@ import { Bot, Send, Plus, Loader2, X, Store } from 'lucide-react'
 import { oneriAl } from '../lib/gemini'
 import { yerelOneri, urunOnerileri, ekstraOneriler } from '../lib/oneriler'
 import { subscribe, getSnapshot, topluEkle, yeniListeOlustur } from '../lib/akilliSepet'
+import { getAuth } from '../lib/auth'
+import { girisIste } from '../lib/girisKapisi'
 
 const HIZLI = [
   'Aylık market alışverişi listesi',
@@ -60,7 +62,8 @@ export default function AiAsistan({ yeniListe = false }) {
   }
   async function ekle(items) {
     if (yeniListe) {
-      // Ana sayfa: yeni adlandırılmış liste oluştur + Sepet'e git.
+      // Ana sayfa: yeni adlandırılmış liste oluştur + Sepet'e git. (Giriş gerekir)
+      if (!getAuth().user) { girisIste('liste oluşturmak'); return }
       const ad = listeAdiYap(sohbet, soru)
       await yeniListeOlustur(ad, items)
       setEklendi(true); setSohbet(null); setSoru('')

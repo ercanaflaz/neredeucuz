@@ -1,6 +1,8 @@
 import { useState, useSyncExternalStore } from 'react'
 import { ListPlus, Check, X, Plus, Bookmark } from 'lucide-react'
 import { subscribe, getSnapshot, kayitliListeOlustur, kayitliListeyeEkle } from '../lib/akilliSepet'
+import { getAuth } from '../lib/auth'
+import { girisIste } from '../lib/girisKapisi'
 
 // Bir ürünü kayıtlı listeye ekleme düğmesi + seçim penceresi.
 // Liste yoksa isim sorar (yeni liste), varsa hangi listeye ekleneceğini seçtirir.
@@ -16,6 +18,7 @@ export default function ListeyeEkle({ urun, variant = 'mini', className = '' }) 
 
   function ac(e) {
     e?.preventDefault(); e?.stopPropagation()
+    if (!getAuth().user) { girisIste('kendi listeni oluşturmak'); return }
     setAcik(true); setYeni(listeler.length === 0); setAd(''); setEklendi(null)
   }
   function kapat() { setAcik(false); setYeni(false); setAd('') }
