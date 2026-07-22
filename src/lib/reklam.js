@@ -2,6 +2,7 @@
 // localStorage'a gerek yok; Supabase'ten okunur (yoksa boş, uygulama kırılmaz).
 import { supabase } from './supabase'
 import { getAuth } from './auth'
+import { izle } from './izleme'
 
 const uid = () => getAuth().user?.id || null
 
@@ -22,11 +23,34 @@ export function konumEtiket(v) {
 // Eski 'anasayfa' kaydı yeni 'anasayfa-1' yuvasında da görünsün
 const KONUM_ALIAS = { 'anasayfa-1': ['anasayfa-1', 'anasayfa'] }
 
-let cache = { reklamlar: [], yuklendi: false }
+let cache = { reklamlar: [], yuklendi: false, istatistik: {} }
 const listeners = new Set()
 const emit = () => { cache = { ...cache }; listeners.forEach((l) => l()) }
 export function subscribeReklam(l) { listeners.add(l); return () => listeners.delete(l) }
 export function getReklam() { return cache }
+
+// ---- Reklam performansı (gösterim / tıklama) ----
+// Aynı reklamın gösterimini bu sayfa yüklemesinde bir kez say.
+const gosterildi = new Set()
+export function reklamGoster(r) {
+  if (!r?.id) return
+  const k = 'g' + r.id
+  if (gosterildi.has(k)) return
+  gosterildi.add(k)
+  try { izle('reklam_gosterim', { baslik: r.baslik || r.konum, detay: { id: String(r.id), konum: r.konum } }) } catch { /* yok */ }
+}
+export function reklamTik(r) {
+  if (!r?.id) return
+  try { izle('reklam_tik', { baslik: r.baslik || r.konum, detay: { id: String(r.id), konum: r.konum } }) } catch { /* yok */ }
+}
+// Admin: reklam başına gösterim/tıklama sayıları (son 30 gün)
+export async function reklamIstatistikYukle() {
+  try {
+    const { data, error } = await supabase.rpc('reklam_istatistik')
+    cache.istatistik = (!error && data && typeof data === 'object') ? data : {}
+  } catch { cache.istatistik = {} }
+  emit()
+}
 
 async function dene(fn) { try { return await fn() } catch { return { error: true } } }
 

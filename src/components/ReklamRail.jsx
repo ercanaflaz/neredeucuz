@@ -1,15 +1,16 @@
-import { useSyncExternalStore } from 'react'
-import { subscribeReklam, getReklam, konumReklamlari } from '../lib/reklam'
+import { useSyncExternalStore, useEffect } from 'react'
+import { subscribeReklam, getReklam, konumReklamlari, reklamGoster, reklamTik } from '../lib/reklam'
 
-// Tek bir reklam afişi (resim ya da html)
+// Tek bir reklam afişi (resim ya da html) — gösterim/tıklama sayılır
 export function Afis({ r }) {
+  useEffect(() => { reklamGoster(r) }, [r?.id])
   const govde = r.tip === 'html' && r.html
     ? <div dangerouslySetInnerHTML={{ __html: r.html }} />
     : r.gorsel
       ? <img src={r.gorsel} alt={r.baslik || 'reklam'} className="w-full rounded-2xl" loading="lazy" />
       : <div className="rounded-2xl bg-base-200 h-40 flex items-center justify-center text-xs text-base-content/40">{r.baslik || 'reklam'}</div>
   return r.hedef
-    ? <a href={r.hedef} target="_blank" rel="noopener noreferrer sponsored" className="block hover:opacity-90 transition">{govde}</a>
+    ? <a href={r.hedef} onClick={() => reklamTik(r)} target="_blank" rel="noopener noreferrer sponsored" className="block hover:opacity-90 transition">{govde}</a>
     : govde
 }
 

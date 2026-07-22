@@ -1,8 +1,8 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { Megaphone, Plus, Trash2, Eye, EyeOff, MapPin, MousePointerClick } from 'lucide-react'
 import {
   subscribeReklam, getReklam, reklamEkle, reklamSil, reklamAktifDegistir,
-  REKLAM_KONUMLARI, konumEtiket,
+  reklamIstatistikYukle, REKLAM_KONUMLARI, konumEtiket,
 } from '../lib/reklam'
 
 const konumBilgi = (v) => REKLAM_KONUMLARI.find((k) => k.v === v) || {}
@@ -77,10 +77,12 @@ function YerlesimHaritasi({ secili, onSec }) {
 }
 
 export default function ReklamYonetimi() {
-  const { reklamlar } = useSyncExternalStore(subscribeReklam, getReklam)
+  const { reklamlar, istatistik } = useSyncExternalStore(subscribeReklam, getReklam)
   const [f, setF] = useState({ konum: 'anasayfa-1', baslik: '', gorsel: '', hedef: '' })
   const [bekle, setBekle] = useState(false)
   const [hata, setHata] = useState('')
+
+  useEffect(() => { reklamIstatistikYukle() }, [])
 
   const secB = konumBilgi(f.konum)
 
@@ -134,6 +136,18 @@ export default function ReklamYonetimi() {
                 <span className="badge badge-primary badge-outline badge-xs mr-1">{konumEtiket(r.konum)}</span>
                 {r.hedef || 'link yok'}
               </div>
+              {(() => {
+                const st = istatistik?.[String(r.id)] || {}
+                const g = st.gosterim || 0, t = st.tiklama || 0
+                const ctr = g > 0 ? Math.round((t / g) * 1000) / 10 : 0
+                return (
+                  <div className="text-[11px] text-base-content/60 mt-0.5 flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1" title="Gösterim (30 gün)"><Eye size={12} /> {g}</span>
+                    <span className="inline-flex items-center gap-1" title="Tıklama (30 gün)"><MousePointerClick size={12} /> {t}</span>
+                    {g > 0 && <span className="text-base-content/40">· TO %{ctr}</span>}
+                  </div>
+                )
+              })()}
             </div>
             <button onClick={() => reklamAktifDegistir(r.id, !r.aktif)} className={`btn btn-xs btn-circle ${r.aktif ? 'btn-success' : 'btn-ghost'}`} title={r.aktif ? 'Aktif — kapat' : 'Pasif — aç'}>
               {r.aktif ? <Eye size={14} /> : <EyeOff size={14} />}
