@@ -39,6 +39,9 @@ export default function Home({ onSelect }) {
   const store = useSyncExternalStore(subscribe, getSnapshot)
   const [q, setQ] = useState('')
   const [sonuclar, setSonuclar] = useState([])
+  const [toplam, setToplam] = useState(0)      // API'nin bulduğu toplam ürün (numberOfFound)
+  const [sayfa, setSayfa] = useState(0)        // yüklü son sayfa
+  const [dahaYuk, setDahaYuk] = useState(false)
   const [yukleniyor, setYukleniyor] = useState(false)
   const [hata, setHata] = useState(null)
   const [tarayici, setTarayici] = useState(false)
@@ -61,6 +64,7 @@ export default function Home({ onSelect }) {
     if (!k) return
     const konum = getSnapshot().konum
     setQ(k); setAktifKelime(k); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setBarkodUrunId(null)
+    setToplam(0); setSayfa(0)
     oneriKapat()
     setYukleniyor(true); setHata(null); setBilgi(''); setAranan(k)
     aramaLogla(k)
@@ -69,6 +73,7 @@ export default function Home({ onSelect }) {
       const res = await searchByKeyword(k, konum)
       const list = normalize(res, konum)
       setSonuclar(list)
+      setToplam(res?.numberOfFound || list.length)
       if (!list.length) setBilgi(konum ? 'Bu bölgede sonuç bulunamadı. Yarıçapı büyütmeyi ya da farklı bir kelimeyi dene.' : 'Sonuç bulunamadı. Farklı bir kelime dene.')
     } catch {
       setHata('Arama başarısız oldu. Bağlantını kontrol et.')
@@ -77,11 +82,29 @@ export default function Home({ onSelect }) {
     }
   }
 
+  // Sonraki sayfayı getir ve mevcut listeye ekle (tekilleştirerek).
+  async function dahaGetir() {
+    if (dahaYuk || !aktifKelime) return
+    const konum = getSnapshot().konum
+    const yeni = sayfa + 1
+    setDahaYuk(true)
+    try {
+      const res = await searchByKeyword(aktifKelime, konum, { page: yeni })
+      const list = normalize(res, konum)
+      setSonuclar((o) => {
+        const ids = new Set(o.map((x) => x.id))
+        return [...o, ...list.filter((x) => !ids.has(x.id))]
+      })
+      setSayfa(yeni)
+      if (res?.numberOfFound) setToplam(res.numberOfFound)
+    } catch { /* yok */ } finally { setDahaYuk(false) }
+  }
+
   async function barkodOkundu(kod) {
     setTarayici(false)
     try { izle('barkod', { baslik: String(kod), detay: { kod: String(kod) } }) } catch { /* yok */ }
     const konum = getSnapshot().konum
-    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false)
+    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setToplam(0); setSayfa(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
     try {
       const res = await searchByBarcode(kod, konum)
@@ -157,7 +180,7 @@ export default function Home({ onSelect }) {
 
   // Aramayı temizle → ana sayfa görünümüne dön.
   function aramayiTemizle() {
-    setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([])
+    setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([]); setToplam(0); setSayfa(0)
     setHata(null); setBilgi(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setBarkodUrunId(null)
     oneriKapat()
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -438,7 +461,10 @@ export default function Home({ onSelect }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-semibold">{barkodUrunId ? 'Okuttuğun ürün ve benzerleri' : `"${aranan}" için sonuçlar`}</h2>
-            <span className="text-xs text-base-content/50">{gosterilen.length} / {sonuclar.length} ürün</span>
+            <span className="text-xs text-base-content/50">
+              {(toplam || sonuclar.length)} ürün bulundu
+              {gosterilen.length !== sonuclar.length && ` · ${gosterilen.length} gösteriliyor`}
+            </span>
           </div>
 
           {/* Sıralama + market filtresi */}
@@ -481,6 +507,14 @@ export default function Home({ onSelect }) {
               <ProductCard key={u.id} urun={u} onClick={() => onSelect(u)} />
             ))}
           </div>
+          {/* Daha fazla göster (sayfalama) */}
+          {sonuclar.length > 0 && toplam > sonuclar.length && (
+            <button onClick={dahaGetir} disabled={dahaYuk} className="btn btn-outline btn-block rounded-xl gap-2">
+              {dahaYuk ? <Loader2 size={18} className="animate-spin" /> : null}
+              Daha fazla göster ({sonuclar.length} / {toplam})
+            </button>
+          )}
+
           <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_LIST} className="mt-1" />
 
           {gosterilen.length === 0 && (

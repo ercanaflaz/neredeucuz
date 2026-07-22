@@ -57,8 +57,9 @@ export function mesafeKm(lat1, lon1, lat2, lon2) {
 // İsimle / anahtar kelimeyle ürün arama.
 // Konum varsa iki adım: (1) /nearest ile bölge depo id'leri, (2) /search'e
 // depots dizisiyle. Konum yoksa Türkiye geneli arama.
-export async function searchByKeyword(keywords, loc) {
-  const body = { keywords, pages: 0, size: 24 }
+// page: 0'dan başlayan sayfa; size: sayfa başına ürün. Yanıt numberOfFound (toplam) içerir.
+export async function searchByKeyword(keywords, loc, { page = 0, size = 36 } = {}) {
+  const body = { keywords, pages: page, size }
   if (konumVarMi(loc)) {
     const depots = await bolgeDepoIdleri(loc)
     return post('search', {
