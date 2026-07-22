@@ -60,20 +60,28 @@ function oturumlariCikar(olaylar) {
   return list.sort((a, b) => new Date(b.bitis) - new Date(a.bitis))
 }
 
-// Son 14 gün: günlük ziyaretçi (tekil oturum) + sayfa görüntüleme
+// Yerel (tarayıcı saat dilimi) gün anahtarı — UTC kayması olmadan eşleştirir.
+// (Türkiye +3'te UTC'ye çevrilince gün bir geri kayıp bugünün verisi kutuya
+// denk gelmiyordu; bu yüzden grafik boş görünüyordu.)
+function yerelGun(d) {
+  const x = d instanceof Date ? d : new Date(d)
+  if (isNaN(x)) return ''
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
+}
+
+// Son 14 gün: günlük tekil ZİYARETÇİ (üstteki "Ziyaretçi" kartıyla tutarlı) + sayfa görüntüleme
 function gunSerisi(olaylar) {
   const gunler = []
   const bugun = new Date(); bugun.setHours(0, 0, 0, 0)
   for (let i = 13; i >= 0; i--) {
     const g = new Date(bugun); g.setDate(g.getDate() - i)
-    gunler.push({ g, key: g.toISOString().slice(0, 10), otur: new Set(), sayfa: 0 })
+    gunler.push({ g, key: yerelGun(g), ziy: new Set(), sayfa: 0 })
   }
   olaylar.forEach((o) => {
-    const key = (o.created_at || '').slice(0, 10)
-    const gun = gunler.find((x) => x.key === key)
-    if (gun) { gun.otur.add(o.oturum_id); if (o.tur === 'sayfa') gun.sayfa += 1 }
+    const gun = gunler.find((x) => x.key === yerelGun(o.created_at))
+    if (gun) { gun.ziy.add(o.ziyaretci_id); if (o.tur === 'sayfa') gun.sayfa += 1 }
   })
-  return gunler.map((x) => ({ g: x.g, deger: x.otur.size, alt: x.sayfa }))
+  return gunler.map((x) => ({ g: x.g, deger: x.ziy.size, alt: x.sayfa }))
 }
 
 function kisaSure(sn) {
@@ -571,10 +579,10 @@ function Kullanicilar({ v }) {
     const bugun = new Date(); bugun.setHours(0, 0, 0, 0)
     for (let i = 13; i >= 0; i--) {
       const g = new Date(bugun); g.setDate(g.getDate() - i)
-      gunler.push({ g, key: g.toISOString().slice(0, 10), deger: 0 })
+      gunler.push({ g, key: yerelGun(g), deger: 0 })
     }
     v.kullanicilar.forEach((k) => {
-      const gun = gunler.find((x) => x.key === (k.olusturuldu || '').slice(0, 10))
+      const gun = gunler.find((x) => x.key === yerelGun(k.olusturuldu))
       if (gun) gun.deger += 1
     })
     return gunler
@@ -675,20 +683,21 @@ function SutunGrafik({ veri, altAd }) {
   const max = Math.max(...veri.map((d) => d.deger), 1)
   const gunAd = (g) => g.toLocaleDateString('tr-TR', { day: '2-digit' })
   return (
-    <div className="flex items-end gap-1 h-32">
+    <div className="flex items-end gap-1 h-36">
       {veri.map((d, i) => (
         <div key={i} className="flex-1 h-full flex flex-col items-center gap-1 group"
           title={`${d.g.toLocaleDateString('tr-TR')}: ${d.deger} ziyaretçi${d.alt != null ? ` · ${d.alt} ${altAd || ''}` : ''}`}>
+          {/* Değer — her zaman görünür, net */}
+          <div className={`h-4 text-[11px] font-bold tabular-nums ${d.deger > 0 ? 'text-base-content/80' : 'text-transparent'}`}>
+            {d.deger > 0 ? d.deger : '0'}
+          </div>
           <div className="relative w-full flex-1 bg-base-200 rounded-md overflow-hidden">
             <div
               className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-primary to-green-400 rounded-md transition-all group-hover:opacity-80"
-              style={{ height: `${Math.max(d.deger ? 8 : 0, (d.deger / max) * 100)}%` }}
+              style={{ height: `${Math.max(d.deger ? 6 : 0, (d.deger / max) * 100)}%` }}
             />
-            {d.deger > 0 && (
-              <div className="absolute inset-x-0 top-0 -mt-0 text-center text-[9px] font-semibold text-base-content/50 opacity-0 group-hover:opacity-100">{d.deger}</div>
-            )}
           </div>
-          <div className="text-[9px] text-base-content/40">{gunAd(d.g)}</div>
+          <div className="text-[10px] font-medium text-base-content/50">{gunAd(d.g)}</div>
         </div>
       ))}
     </div>
