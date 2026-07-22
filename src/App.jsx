@@ -13,6 +13,7 @@ import ReklamRail from './components/ReklamRail'
 import HataSiniri from './components/HataSiniri'
 import { listeYukle as akilliListeYukle, listeleriYukle } from './lib/akilliSepet'
 import { reklamlariYukle } from './lib/reklam'
+import { ayarlariYukle } from './lib/ayarlar'
 
 function useHash() {
   const [hash, setHash] = useState(window.location.hash || '#/')
@@ -30,7 +31,7 @@ export default function App() {
   const hash = useHash()
   const [secili, setSecili] = useState(null)
 
-  useEffect(() => { konumBaslat(); reklamlariYukle() }, [])
+  useEffect(() => { konumBaslat(); reklamlariYukle(); ayarlariYukle() }, [])
 
   useEffect(() => {
     const t = setTimeout(() => {

@@ -12,6 +12,7 @@ import { tl } from '../lib/format'
 import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla } from '../lib/store'
 import { ReklamSerit } from '../components/ReklamRail'
 import AiAsistan from '../components/AiAsistan'
+import NasilKullanilir from '../components/NasilKullanilir'
 
 const KATEGORILER = [
   { ad: 'Temel gıda', terim: 'pirinç', emoji: '🍚', grad: 'from-amber-400 to-orange-500' },
@@ -313,13 +314,14 @@ export default function Home({ onSelect }) {
             </div>
           </div>
 
-          {/* Güven şeridi */}
-          <div className="mt-4 flex flex-wrap gap-2">
+          {/* Güven şeridi + Nasıl kullanılır */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {[['🏪', '7 market'], ['📦', '50.000+ ürün'], ['⚡', 'anlık fiyat'], ['🆓', 'ücretsiz']].map(([e, t]) => (
               <span key={t} className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur rounded-full px-3 py-1 text-xs font-medium">
                 <span>{e}</span> {t}
               </span>
             ))}
+            <NasilKullanilir className="text-xs !py-1 !px-3 ml-auto" />
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { getAuth } from '../lib/auth'
 import { tl, tarih } from '../lib/format'
 import ReklamYonetimi from '../components/ReklamYonetimi'
+import VideoYonetimi from '../components/VideoYonetimi'
 
 // Verilen kayıtları bir alana göre grupla, en çok N tanesini döndür.
 function enCok(kayitlar, alan, n = 6) {
@@ -108,8 +109,9 @@ export default function Admin() {
             <Tile grad="from-fuchsia-500 to-pink-500" icon={<SearchIcon size={18} />} n={v.aramalar.length} l="Toplam arama" />
           </div>
 
-          {/* REKLAM YÖNETİMİ */}
+          {/* REKLAM + VİDEO YÖNETİMİ */}
           <ReklamYonetimi />
+          <VideoYonetimi />
 
           {/* BÜYÜME */}
           <Kart baslik="Yeni kullanıcılar — son 14 gün" ikon={<TrendingUp size={16} />}>
