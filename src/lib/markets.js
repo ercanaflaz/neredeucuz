@@ -3,13 +3,27 @@
 // stil: 'kutu' → renkli kutu + beyaz/koyu yazı · 'yazi' → sadece renkli kalın yazı (ör. Migros)
 
 const MARKALAR = [
-  { anahtar: ['bim'],            ad: 'BİM',         bg: '#E4002B', text: '#ffffff', stil: 'kutu' },
-  { anahtar: ['a101', 'a 101'],  ad: 'A101',        bg: '#C8102E', text: '#ffffff', stil: 'kutu' },
-  { anahtar: ['sok', 'şok'],     ad: 'ŞOK',         bg: '#FFED00', text: '#1b2a6b', stil: 'kutu' },
-  { anahtar: ['migros'],         ad: 'Migros',      bg: '#EA6E1F', text: '#EA6E1F', stil: 'yazi' },
-  { anahtar: ['carrefour'],      ad: 'CarrefourSA', bg: '#004B93', text: '#ffffff', stil: 'kutu' },
-  { anahtar: ['hakmar'],         ad: 'Hakmar',      bg: '#B4121B', text: '#ffffff', stil: 'kutu' },
-  { anahtar: ['tarim', 'tarım', 'kredi'], ad: 'Tarım Kredi', bg: '#1C7C34', text: '#ffffff', stil: 'kutu' },
+  // Kırmızı kutu — BİM'in resmi kırmızısı
+  { anahtar: ['bim'],            ad: 'BİM',         bg: '#ED1C24', text: '#ffffff', stil: 'kutu' },
+  // A101 — resmi kırmızı, beyaz yazı
+  { anahtar: ['a101', 'a 101'],  ad: 'A101',        bg: '#E4032E', text: '#ffffff', stil: 'kutu' },
+  // ŞOK — sarı zemin, lacivert yazı (kurumsal kimlik)
+  { anahtar: ['sok', 'şok'],     ad: 'ŞOK',         bg: '#FFDD00', text: '#0B4DA2', stil: 'kutu' },
+  // Migros — turuncu kelime-logo (kutusuz)
+  { anahtar: ['migros'],         ad: 'Migros',      bg: '#FF6600', text: '#FF6600', stil: 'yazi' },
+  // CarrefourSA — resmi mavi
+  { anahtar: ['carrefour'],      ad: 'CarrefourSA', bg: '#004E9E', text: '#ffffff', stil: 'kutu' },
+  // Hakmar — kırmızı
+  { anahtar: ['hakmar'],         ad: 'Hakmar',      bg: '#C8102E', text: '#ffffff', stil: 'kutu' },
+  // Tarım Kredi Kooperatif Market — kurumsal yeşil
+  { anahtar: ['tarim', 'tarım', 'kredi'], ad: 'Tarım Kredi', bg: '#009640', text: '#ffffff', stil: 'kutu' },
+  // Diğer sık görülen zincirler
+  { anahtar: ['onur'],           ad: 'Onur Market', bg: '#E30613', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['file'],           ad: 'File',        bg: '#00954C', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['happy'],          ad: 'Happy Center',bg: '#EC008C', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['ecopet', 'eko pet'], ad: 'Ecopet',   bg: '#F58220', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['pehlivan'],       ad: 'Pehlivanoğlu',bg: '#00529B', text: '#ffffff', stil: 'kutu' },
+  { anahtar: ['mopaş', 'mopas'], ad: 'Mopaş',       bg: '#004A93', text: '#ffffff', stil: 'kutu' },
 ]
 
 const VARSAYILAN = { ad: null, bg: '#64748b', text: '#ffffff', stil: 'kutu' }
