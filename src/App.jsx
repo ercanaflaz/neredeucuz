@@ -138,7 +138,7 @@ export default function App() {
       {/* ÜST BAR — masaüstünde menü linkleriyle */}
       <header className="bg-base-100 border-b border-base-300 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 h-14 md:h-16 flex items-center gap-2">
-          <a href="#/" onClick={() => setSecili(null)} className="flex items-center gap-2 font-bold text-lg md:text-xl">
+          <a href="#/" onClick={() => { setSecili(null); window.dispatchEvent(new Event('ne:anasayfa')) }} className="flex items-center gap-2 font-bold text-lg md:text-xl">
             <img src="/favicon.svg" alt="neredeucuz logo" className="w-8 h-8 md:w-9 md:h-9 rounded-lg shadow-sm" />
             <span><span className="text-primary">nerede</span><span className="text-secondary">ucuz</span></span>
           </a>
@@ -151,7 +151,7 @@ export default function App() {
                 <a
                   key={n.key}
                   href={n.href}
-                  onClick={() => setSecili(null)}
+                  onClick={() => { setSecili(null); if (n.key === 'ana') window.dispatchEvent(new Event('ne:anasayfa')) }}
                   className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
                     n.active ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'
                   }`}
@@ -213,7 +213,7 @@ export default function App() {
             <a
               key={n.key}
               href={n.href}
-              onClick={() => setSecili(null)}
+              onClick={() => { setSecili(null); if (n.key === 'ana') window.dispatchEvent(new Event('ne:anasayfa')) }}
               className={`relative flex flex-col items-center gap-0.5 py-2.5 text-xs ${
                 n.active ? 'text-primary font-semibold' : 'text-base-content/60'
               }`}

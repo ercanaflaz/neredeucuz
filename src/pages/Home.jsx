@@ -258,6 +258,14 @@ export default function Home({ onSelect }) {
     finally { setTimeout(() => setYeniliyor(false), 500) }
   }
 
+  // Üstteki logo / "Ana Sayfa"ya basınca aramayı sıfırla (App bu olayı yollar).
+  const temizleRef = useRef(null)
+  useEffect(() => {
+    const on = () => temizleRef.current && temizleRef.current()
+    window.addEventListener('ne:anasayfa', on)
+    return () => window.removeEventListener('ne:anasayfa', on)
+  }, [])
+
   // Aramayı temizle → ana sayfa görünümüne dön.
   function aramayiTemizle() {
     setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([]); setToplam(0); setSayfa(0)
@@ -266,6 +274,8 @@ export default function Home({ onSelect }) {
     oneriKapat()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  // Listener her zaman en güncel temizleme fonksiyonunu çağırsın.
+  temizleRef.current = aramayiTemizle
 
   // Canlı öneri: yazarken (debounce) gerçek ürünleri getir.
   useEffect(() => {
