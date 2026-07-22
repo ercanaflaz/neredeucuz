@@ -52,7 +52,9 @@ export default function Home({ onSelect }) {
   const [marketFiltre, setMarketFiltre] = useState(null)
   const [urunMarka, setUrunMarka] = useState(null) // ürün markası filtresi (Sütaş, Coca-Cola...)
   const [sadeceKampanya, setSadeceKampanya] = useState(false)
-  const [turFiltre, setTurFiltre] = useState(null)  // alt tür filtresi (beyaz, kaşar, üçgen...)
+  const [turFiltre, setTurFiltre] = useState(null)  // seçili alt tür (beyaz, kaşar, üçgen...)
+  const [turler, setTurler] = useState([])          // tür çipleri (baz aramadan)
+  const [anaKelime, setAnaKelime] = useState('')    // baz arama kelimesi (tür eklenmeden)
   const [barkodUrunId, setBarkodUrunId] = useState(null) // barkodla taranan ürün (başta gösterilir)
   // Canlı arama önerileri
   const [oneriler, setOneriler] = useState([])
@@ -60,27 +62,65 @@ export default function Home({ onSelect }) {
   const [oneriYukleniyor, setOneriYukleniyor] = useState(false)
   const zamanlayici = useRef(null)
 
-  async function aramaYap(kelime) {
-    const k = (kelime ?? q).trim()
-    if (!k) return
+  // Sonuç başlıklarından alt tür kelimelerini çıkar (marka + arama kelimeleri hariç).
+  function turleriHesapla(list, kelime) {
+    const STOP = new Set(['gr', 'kg', 'ml', 'lt', 'adet', 'paket', 'gram', 've', 'ile', 'light', 'için', 'yağlı', 'yagli'])
+    const aramaKel = new Set((kelime || '').toLocaleLowerCase('tr').split(/\s+/).filter(Boolean))
+    const markaKel = new Set()
+    list.forEach((u) => String(u.brand || '').toLocaleLowerCase('tr').split(/\s+/).forEach((w) => w && markaKel.add(w)))
+    const say = new Map()
+    for (const u of list) {
+      const kelimeler = new Set(String(u.title || '').toLocaleLowerCase('tr').replace(/[0-9]+/g, ' ').split(/\s+/).filter(Boolean))
+      for (const w of kelimeler) {
+        if (w.length < 3 || aramaKel.has(w) || markaKel.has(w) || STOP.has(w)) continue
+        say.set(w, (say.get(w) || 0) + 1)
+      }
+    }
+    return [...say.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([w, n]) => ({ w, n }))
+  }
+
+  // Arama motorunu çalıştır (sonuçları + toplamı ayarlar). Çipleri değiştirmez.
+  async function calistir(kelime) {
     const konum = getSnapshot().konum
-    setQ(k); setAktifKelime(k); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setBarkodUrunId(null)
-    setToplam(0); setSayfa(0)
-    oneriKapat()
-    setYukleniyor(true); setHata(null); setBilgi(''); setAranan(k)
-    aramaLogla(k)
+    setYukleniyor(true); setHata(null); setBilgi('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
     try {
-      const res = await searchByKeyword(k, konum)
+      const res = await searchByKeyword(kelime, konum)
       const list = normalize(res, konum)
       setSonuclar(list)
       setToplam(res?.numberOfFound || list.length)
+      setSayfa(0)
       if (!list.length) setBilgi(konum ? 'Bu bölgede sonuç bulunamadı. Yarıçapı büyütmeyi ya da farklı bir kelimeyi dene.' : 'Sonuç bulunamadı. Farklı bir kelime dene.')
+      return list
     } catch {
       setHata('Arama başarısız oldu. Bağlantını kontrol et.')
+      return []
     } finally {
       setYukleniyor(false)
     }
+  }
+
+  // BAZ arama (üst kutu / popüler). Tür çiplerini bu sonuçtan üretir.
+  async function aramaYap(kelime) {
+    const k = (kelime ?? q).trim()
+    if (!k) return
+    setQ(k); setAktifKelime(k); setAnaKelime(k)
+    setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setBarkodUrunId(null); setTurler([])
+    setToplam(0); setSayfa(0)
+    oneriKapat()
+    setAranan(k)
+    aramaLogla(k)
+    const list = await calistir(k)
+    setTurler(turleriHesapla(list, k))
+  }
+
+  // Tür çipine tıkla → o türü SUNUCUDAN yeniden ara (tam liste + doğru sayı).
+  async function turSec(w) {
+    const yeni = turFiltre === w ? null : w
+    setTurFiltre(yeni)
+    const kelime = yeni ? `${w} ${anaKelime}`.trim() : anaKelime
+    setAktifKelime(kelime)
+    await calistir(kelime)
   }
 
   // Sonraki sayfayı getir ve mevcut listeye ekle (tekilleştirerek).
@@ -105,7 +145,7 @@ export default function Home({ onSelect }) {
     setTarayici(false)
     try { izle('barkod', { baslik: String(kod), detay: { kod: String(kod) } }) } catch { /* yok */ }
     const konum = getSnapshot().konum
-    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setToplam(0); setSayfa(0)
+    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setTurler([]); setAnaKelime(''); setToplam(0); setSayfa(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
     try {
       const res = await searchByBarcode(kod, konum)
@@ -182,7 +222,7 @@ export default function Home({ onSelect }) {
   // Aramayı temizle → ana sayfa görünümüne dön.
   function aramayiTemizle() {
     setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([]); setToplam(0); setSayfa(0)
-    setHata(null); setBilgi(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setBarkodUrunId(null)
+    setHata(null); setBilgi(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setTurler([]); setAnaKelime(''); setBarkodUrunId(null)
     oneriKapat()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -223,29 +263,8 @@ export default function Home({ onSelect }) {
     return [...s].sort((a, b) => a.localeCompare(b, 'tr'))
   }, [sonuclar])
 
-  // Alt türler: sonuç başlıklarından sık geçen anlamlı kelimeler (marka ve arama
-  // kelimeleri hariç). Ör. "peynir" → beyaz, kaşar, üçgen, krem, taze, süzme...
-  const turler = useMemo(() => {
-    const STOP = new Set(['gr', 'kg', 'ml', 'lt', 'adet', 'paket', 'gram', 've', 'ile', 'light', 'için', 'yağlı', 'yagli'])
-    const aramaKel = new Set((aktifKelime || '').toLocaleLowerCase('tr').split(/\s+/).filter(Boolean))
-    const markaKel = new Set()
-    sonuclar.forEach((u) => String(u.brand || '').toLocaleLowerCase('tr').split(/\s+/).forEach((w) => w && markaKel.add(w)))
-    const say = new Map()
-    for (const u of sonuclar) {
-      const kelimeler = new Set(
-        String(u.title || '').toLocaleLowerCase('tr').replace(/[0-9]+/g, ' ').split(/\s+/).filter(Boolean),
-      )
-      for (const w of kelimeler) {
-        if (w.length < 3 || aramaKel.has(w) || markaKel.has(w) || STOP.has(w)) continue
-        say.set(w, (say.get(w) || 0) + 1)
-      }
-    }
-    return [...say.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([w, n]) => ({ w, n }))
-  }, [sonuclar, aktifKelime])
-
   const gosterilen = useMemo(() => {
     let list = sonuclar
-    if (turFiltre) list = list.filter((u) => String(u.title || '').toLocaleLowerCase('tr').includes(turFiltre))
     if (marketFiltre) list = list.filter((u) => u.depots.some((d) => marka(d.market).ad === marketFiltre))
     if (urunMarka) list = list.filter((u) => u.brand === urunMarka)
     if (sadeceKampanya) list = list.filter((u) => u.kampanyali)
@@ -255,7 +274,7 @@ export default function Home({ onSelect }) {
       list = [...list].sort((a, b) => (a.minPrice ?? 1e9) - (b.minPrice ?? 1e9))
     }
     return list
-  }, [sonuclar, turFiltre, marketFiltre, urunMarka, siralama, sadeceKampanya])
+  }, [sonuclar, marketFiltre, urunMarka, siralama, sadeceKampanya])
 
   const kampanyaSayisi = useMemo(() => sonuclar.filter((u) => u.kampanyali).length, [sonuclar])
 
@@ -493,7 +512,7 @@ export default function Home({ onSelect }) {
           {turler.length > 0 && (
             <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1">
               <button
-                onClick={() => setTurFiltre(null)}
+                onClick={() => turFiltre && turSec(turFiltre)}
                 className={`px-3 py-1 rounded-full text-[12px] font-medium whitespace-nowrap border transition ${!turFiltre ? 'bg-primary text-primary-content border-primary' : 'bg-base-100 text-base-content/70 border-base-300 hover:bg-base-200'}`}
               >
                 Tümü
@@ -501,10 +520,10 @@ export default function Home({ onSelect }) {
               {turler.map((t) => (
                 <button
                   key={t.w}
-                  onClick={() => setTurFiltre((o) => (o === t.w ? null : t.w))}
+                  onClick={() => turSec(t.w)}
                   className={`px-3 py-1 rounded-full text-[12px] font-medium whitespace-nowrap border transition capitalize ${turFiltre === t.w ? 'bg-primary text-primary-content border-primary' : 'bg-base-100 text-base-content/70 border-base-300 hover:bg-base-200'}`}
                 >
-                  {t.w} <span className={turFiltre === t.w ? 'text-primary-content/70' : 'text-base-content/40'}>{t.n}</span>
+                  {t.w}
                 </button>
               ))}
             </div>
