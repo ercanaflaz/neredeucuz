@@ -1,37 +1,106 @@
-// marketfiyatı tarzı ana kategoriler — renkli kutular + alt başlıklar.
-// Ana kutuya dokununca alt başlıklar açılır; alt başlığa dokununca o kelime aranır.
-// g1/g2: kutu gradyanı (sabit hex — her yerde net basar) · renk: alt başlık çipi aksan tonu
+// marketfiyatı.org.tr ile birebir aynı kategori ağacı (7 ana + alt kategoriler).
+// ad: marketfiyatı'ndaki kategori adı (aynen) · terim: o kategoride gerçek sonuç getiren arama kelimesi
+// (kategori adları kelime olarak aranınca çoğu 0 sonuç verdiği için her birine sonuç getiren terim eşlendi)
+// g1/g2: kutu gradyanı (sabit hex) · renk: alt başlık çipi aksan tonu
 export const KATEGORILER = [
   {
-    ad: 'Meyve & Sebze', emoji: '🥬', g1: '#22c55e', g2: '#15803d', renk: 'green',
-    alt: ['Domates', 'Salatalık', 'Patates', 'Soğan', 'Muz', 'Elma', 'Limon', 'Biber', 'Havuç', 'Portakal'],
+    ad: 'Meyve ve Sebze', emoji: '🥬', g1: '#22c55e', g2: '#15803d', renk: 'green',
+    alt: [
+      { ad: 'Meyve', terim: 'meyve' },
+      { ad: 'Sebze', terim: 'domates' },
+    ],
   },
   {
-    ad: 'Et, Tavuk & Balık', emoji: '🍗', g1: '#f43f5e', g2: '#be123c', renk: 'rose',
-    alt: ['Tavuk göğsü', 'Tavuk but', 'Kıyma', 'Kuşbaşı', 'Sucuk', 'Salam', 'Sosis', 'Balık'],
+    ad: 'Et, Tavuk ve Balık', emoji: '🍖', g1: '#f43f5e', g2: '#be123c', renk: 'rose',
+    alt: [
+      { ad: 'Kırmızı Et', terim: 'kırmızı et' },
+      { ad: 'Beyaz Et', terim: 'tavuk' },
+      { ad: 'Deniz Ürünleri', terim: 'balık' },
+      { ad: 'Şarküteri', terim: 'sucuk' },
+      { ad: 'Sakatat', terim: 'ciğer' },
+    ],
   },
   {
-    ad: 'Süt & Kahvaltılık', emoji: '🧀', g1: '#0ea5e9', g2: '#2563eb', renk: 'sky',
-    alt: ['Süt', 'Peynir', 'Kaşar', 'Yumurta', 'Yoğurt', 'Tereyağı', 'Zeytin', 'Bal', 'Reçel'],
+    ad: 'Süt Ürünleri ve Kahvaltılık', emoji: '🧀', g1: '#0ea5e9', g2: '#2563eb', renk: 'sky',
+    alt: [
+      { ad: 'Süt', terim: 'süt' },
+      { ad: 'Yumurta', terim: 'yumurta' },
+      { ad: 'Peynir', terim: 'peynir' },
+      { ad: 'Yoğurt', terim: 'yoğurt' },
+      { ad: 'Zeytin', terim: 'zeytin' },
+      { ad: 'Tereyağı ve Margarin', terim: 'tereyağı' },
+      { ad: 'Sürülebilir Ürünler ve Kahvaltılık Soslar', terim: 'kakaolu krem' },
+      { ad: 'Helva Tahin ve Pekmez', terim: 'tahin' },
+      { ad: 'Bal ve Reçel', terim: 'bal' },
+      { ad: 'Kahvaltılık Gevrek Bar ve Granola', terim: 'granola' },
+      { ad: 'Kaymak ve Krema', terim: 'kaymak' },
+    ],
   },
   {
     ad: 'Temel Gıda', emoji: '🌾', g1: '#f59e0b', g2: '#ea580c', renk: 'amber',
-    alt: ['Ayçiçek yağı', 'Un', 'Şeker', 'Makarna', 'Pirinç', 'Mercimek', 'Nohut', 'Salça', 'Tuz'],
+    alt: [
+      { ad: 'Ekmek ve Unlu Mamüller', terim: 'ekmek' },
+      { ad: 'Sıvı Yağlar', terim: 'ayçiçek yağı' },
+      { ad: 'Bakliyat', terim: 'mercimek' },
+      { ad: 'Şeker ve Tatlandırıcılar', terim: 'şeker' },
+      { ad: 'Pasta Malzemeleri', terim: 'kabartma tozu' },
+      { ad: 'Un ve İrmik', terim: 'un' },
+      { ad: 'Mantı Makarna ve Erişte', terim: 'makarna' },
+      { ad: 'Ketçap Mayonez Sos ve Sirkeler', terim: 'ketçap' },
+      { ad: 'Tuz Baharat ve Harçlar', terim: 'baharat' },
+      { ad: 'Salça', terim: 'salça' },
+      { ad: 'Turşu', terim: 'turşu' },
+      { ad: 'Konserve', terim: 'konserve' },
+      { ad: 'Hazır Gıda', terim: 'hazır çorba' },
+      { ad: 'Bebek Mamaları', terim: 'bebek maması' },
+    ],
   },
   {
     ad: 'İçecek', emoji: '🥤', g1: '#ec4899', g2: '#db2777', renk: 'pink',
-    alt: ['Su', 'Çay', 'Kahve', 'Kola', 'Meyve suyu', 'Ayran', 'Soda', 'Gazoz'],
+    alt: [
+      { ad: 'Su', terim: 'su' },
+      { ad: 'Meyve Suyu', terim: 'meyve suyu' },
+      { ad: 'Gazlı İçecekler', terim: 'kola' },
+      { ad: 'Gazsız İçecekler', terim: 'soğuk çay' },
+      { ad: 'Ayran ve Kefir', terim: 'ayran' },
+      { ad: 'Maden Suyu', terim: 'maden suyu' },
+      { ad: 'Çay ve Bitki Çayları', terim: 'çay' },
+      { ad: 'Kahve', terim: 'kahve' },
+    ],
   },
   {
-    ad: 'Atıştırmalık & Tatlı', emoji: '🍫', g1: '#8b5cf6', g2: '#7c3aed', renk: 'violet',
-    alt: ['Çikolata', 'Bisküvi', 'Cips', 'Gofret', 'Kek', 'Kraker', 'Sakız', 'Lokum'],
+    ad: 'Atıştırmalık ve Tatlı', emoji: '🍫', g1: '#8b5cf6', g2: '#7c3aed', renk: 'violet',
+    alt: [
+      { ad: 'Çikolata', terim: 'çikolata' },
+      { ad: 'Gofret', terim: 'gofret' },
+      { ad: 'Bisküvi ve Kraker', terim: 'bisküvi' },
+      { ad: 'Kek', terim: 'kek' },
+      { ad: 'Cips', terim: 'cips' },
+      { ad: 'Kuruyemiş ve Kuru Meyve', terim: 'kuruyemiş' },
+      { ad: 'Sakız ve Şekerleme', terim: 'sakız' },
+      { ad: 'Tatlılar', terim: 'sütlaç' },
+      { ad: 'Dondurmalar', terim: 'dondurma' },
+    ],
   },
   {
-    ad: 'Temizlik', emoji: '🧴', g1: '#14b8a6', g2: '#0d9488', renk: 'teal',
-    alt: ['Çamaşır deterjanı', 'Bulaşık deterjanı', 'Yumuşatıcı', 'Çamaşır suyu', 'Şampuan', 'Diş macunu', 'Tuvalet kağıdı', 'Sabun'],
-  },
-  {
-    ad: 'Bebek', emoji: '🍼', g1: '#10b981', g2: '#059669', renk: 'emerald',
-    alt: ['Bebek bezi', 'Islak mendil', 'Bebek maması', 'Devam sütü', 'Biberon', 'Bebek şampuanı'],
+    ad: 'Temizlik ve Kişisel Bakım Ürünleri', emoji: '🧴', g1: '#14b8a6', g2: '#0d9488', renk: 'teal',
+    alt: [
+      { ad: 'Bulaşık Temizlik Ürünleri', terim: 'bulaşık deterjanı' },
+      { ad: 'Çamaşır Temizlik Ürünleri', terim: 'çamaşır deterjanı' },
+      { ad: 'Genel Temizlik Ürünleri', terim: 'yüzey temizleyici' },
+      { ad: 'Mutfak Sarf Malzemeleri', terim: 'streç film' },
+      { ad: 'Tuvalet Kağıdı', terim: 'tuvalet kağıdı' },
+      { ad: 'Kağıt Havlu', terim: 'kağıt havlu' },
+      { ad: 'Kağıt Peçete ve Mendil', terim: 'peçete' },
+      { ad: 'Islak Mendil', terim: 'ıslak mendil' },
+      { ad: 'Saç Bakım', terim: 'şampuan' },
+      { ad: 'Duş Banyo ve Sabun', terim: 'sabun' },
+      { ad: 'Ağız Bakım', terim: 'diş macunu' },
+      { ad: 'Hijyenik Ped', terim: 'ped' },
+      { ad: 'Bebek ve Hasta Bezi', terim: 'bebek bezi' },
+      { ad: 'Parfüm Deodorant Kolonya ve Kokular', terim: 'deodorant' },
+      { ad: 'Cilt Bakımı', terim: 'nemlendirici' },
+      { ad: 'Makyaj', terim: 'ruj' },
+    ],
   },
 ]

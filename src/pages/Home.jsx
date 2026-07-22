@@ -486,11 +486,12 @@ export default function Home({ onSelect }) {
                   <div className="flex flex-wrap gap-2">
                     {k.alt.map((a) => (
                       <button
-                        key={a}
-                        onClick={() => aramaYap(a)}
+                        key={a.ad}
+                        onClick={() => aramaYap(a.terim)}
+                        title={`"${a.ad}" ürünlerini ara`}
                         className={`px-3.5 py-2 rounded-full text-sm font-medium border transition active:scale-95 ${AKSAN[k.renk]?.cip || 'bg-base-200 border-base-300 hover:bg-base-300'}`}
                       >
-                        {a}
+                        {a.ad}
                       </button>
                     ))}
                   </div>
