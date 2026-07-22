@@ -420,26 +420,65 @@ function Canli({ olaylarTum, email }) {
 
 function Ziyaretciler({ oturumlar, email }) {
   const [ara, setAra] = useState('')
+  const [cihazF, setCihazF] = useState('hepsi')
+  const [uyeF, setUyeF] = useState('hepsi')
+  const [sayfa, setSayfa] = useState(1)
+  const BOYUT = 20
+
   const suzulmus = useMemo(() => {
     const q = ara.trim().toLocaleLowerCase('tr')
-    if (!q) return oturumlar
-    return oturumlar.filter((o) =>
-      [o.sehir, ulkeAd(o.ulke), o.kaynak, o.cihaz, email(o.kullanici_id)].filter(Boolean).join(' ').toLocaleLowerCase('tr').includes(q),
-    )
-  }, [oturumlar, ara, email])
+    return oturumlar.filter((o) => {
+      if (cihazF !== 'hepsi' && o.cihaz !== cihazF) return false
+      if (uyeF === 'uye' && !o.kullanici_id) return false
+      if (uyeF === 'misafir' && o.kullanici_id) return false
+      if (q && ![o.sehir, ulkeAd(o.ulke), o.kaynak, o.cihaz, email(o.kullanici_id)]
+        .filter(Boolean).join(' ').toLocaleLowerCase('tr').includes(q)) return false
+      return true
+    })
+  }, [oturumlar, ara, cihazF, uyeF, email])
+
+  useEffect(() => { setSayfa(1) }, [ara, cihazF, uyeF])
+
+  const toplamSayfa = Math.max(1, Math.ceil(suzulmus.length / BOYUT))
+  const aktifSayfa = Math.min(sayfa, toplamSayfa)
+  const dilim = suzulmus.slice((aktifSayfa - 1) * BOYUT, aktifSayfa * BOYUT)
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
           <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
-          <input value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Şehir, kaynak, cihaz ara…"
+          <input value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Şehir, kaynak, cihaz, e-posta ara…"
             className="input input-sm input-bordered w-full pl-9 rounded-xl" />
         </div>
-        <span className="text-xs text-base-content/50">{suzulmus.length} oturum</span>
+        <select value={cihazF} onChange={(e) => setCihazF(e.target.value)} className="select select-sm select-bordered rounded-xl">
+          <option value="hepsi">Tüm cihazlar</option>
+          <option value="mobil">Mobil</option>
+          <option value="masaüstü">Masaüstü</option>
+          <option value="tablet">Tablet</option>
+        </select>
+        <select value={uyeF} onChange={(e) => setUyeF(e.target.value)} className="select select-sm select-bordered rounded-xl">
+          <option value="hepsi">Üye + Misafir</option>
+          <option value="uye">Sadece üyeler</option>
+          <option value="misafir">Sadece misafirler</option>
+        </select>
+        <span className="text-xs text-base-content/50 ml-auto whitespace-nowrap">{suzulmus.length} oturum</span>
       </div>
-      {suzulmus.length ? (
-        <div className="space-y-2">{suzulmus.slice(0, 200).map((o) => <OturumSatiri key={o.oturum_id} o={o} email={email} acilir />)}</div>
-      ) : <Kart baslik=""><Bos metin="Kayıt yok." /></Kart>}
+
+      {dilim.length ? (
+        <>
+          <div className="space-y-2">{dilim.map((o) => <OturumSatiri key={o.oturum_id} o={o} email={email} acilir />)}</div>
+          {toplamSayfa > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button disabled={aktifSayfa <= 1} onClick={() => setSayfa(aktifSayfa - 1)}
+                className="btn btn-sm btn-ghost rounded-xl disabled:opacity-40">‹ Önceki</button>
+              <span className="text-xs text-base-content/60 tabular-nums">Sayfa <b>{aktifSayfa}</b> / {toplamSayfa}</span>
+              <button disabled={aktifSayfa >= toplamSayfa} onClick={() => setSayfa(aktifSayfa + 1)}
+                className="btn btn-sm btn-ghost rounded-xl disabled:opacity-40">Sonraki ›</button>
+            </div>
+          )}
+        </>
+      ) : <Kart baslik=""><Bos metin="Bu filtrede oturum yok." /></Kart>}
     </div>
   )
 }
