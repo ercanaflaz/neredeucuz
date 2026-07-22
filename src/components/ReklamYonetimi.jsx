@@ -23,7 +23,7 @@ function YerlesimHaritasi({ secili, onSec }) {
           ${aktif ? 'border-primary bg-primary/15 text-primary' : 'border-primary/40 bg-primary/5 text-primary/80 hover:bg-primary/10'}`}
       >
         <span className={`w-4 h-4 rounded-full text-[10px] grid place-items-center ${aktif ? 'bg-primary text-primary-content' : 'bg-primary/30 text-primary'}`}>{no}</span>
-        📢 {b.l?.replace('Ana sayfa · ', '')} reklamı
+        📢 {b.l?.replace(/^(Ana sayfa|Bildirimler) · /, '')} reklamı
       </button>
     )
   }
@@ -58,6 +58,20 @@ function YerlesimHaritasi({ secili, onSec }) {
         </button>
       </div>
       <div className="text-[10px] text-base-content/40 mt-2">3 numaralı alan yalnızca kullanıcı arama yapınca görünür.</div>
+
+      {/* Bildirimler sayfası yerleşimi */}
+      <div className="mt-3 pt-3 border-t border-base-200">
+        <div className="text-[11px] font-semibold text-base-content/60 mb-2 flex items-center gap-1.5">
+          <MousePointerClick size={13} /> Bildirimler sayfası — kutuya dokun, o konumu seç
+        </div>
+        <div className="space-y-1.5">
+          <Blok>🔔 Başlık + "Bildirimleri aç" şeridi</Blok>
+          <Blok>🏷️ Filtre sekmeleri</Blok>
+          <Yuva v="bildirim-1" no={4} />
+          <Blok>📨 Bildirim listesi</Blok>
+          <Yuva v="bildirim-2" no={5} />
+        </div>
+      </div>
     </div>
   )
 }

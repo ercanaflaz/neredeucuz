@@ -11,6 +11,8 @@ export const REKLAM_KONUMLARI = [
   { v: 'anasayfa-1', l: 'Ana sayfa · Kategoriler altı', aciklama: 'Kategori kutularının hemen altında (asistan ile marketler arası)', boyut: '728 × 90 px yatay afiş' },
   { v: 'anasayfa-2', l: 'Ana sayfa · Marketler altı', aciklama: '"Sana yakın marketler" ile "En çok aranan ürünler" arasında', boyut: '728 × 90 px yatay afiş' },
   { v: 'liste', l: 'Arama sonuçları arası', aciklama: 'Kullanıcı arama yapınca ürün listesinin altında', boyut: '300 × 250 px kutu' },
+  { v: 'bildirim-1', l: 'Bildirimler · Liste üstü', aciklama: 'Bildirimler sayfasında, filtre sekmelerinin altında ve listenin üstünde', boyut: '300 × 250 px kutu' },
+  { v: 'bildirim-2', l: 'Bildirimler · Liste altı', aciklama: 'Bildirimler sayfasında, bildirim listesinin en altında', boyut: '300 × 250 px kutu' },
   { v: 'sol', l: 'Sol yan ray (masaüstü)', aciklama: 'Masaüstünde içeriğin solundaki dikey sütun', boyut: '160 × 600 px dikey' },
   { v: 'sag', l: 'Sağ yan ray (masaüstü)', aciklama: 'Masaüstünde içeriğin sağındaki dikey sütun', boyut: '160 × 600 px dikey' },
 ]

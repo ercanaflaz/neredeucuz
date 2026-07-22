@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { Bell, BellOff, BellRing, Tag, Megaphone, Loader2, Check } from 'lucide-react'
 import { subscribeBildirim, getBildirim, bildirimleriYukle, bildirimGoruldu, sonGorulenMs } from '../lib/bildirimler'
 import { pushDestekli, pushIzin, pushAc, iosStandaloneGerekli } from '../lib/push'
+import ReklamYuva from '../components/ReklamYuva'
 
 function zamanKisa(iso) {
   try {
@@ -131,6 +132,9 @@ export default function Bildirimler() {
         })}
       </div>
 
+      {/* Reklam — liste üstü */}
+      <ReklamYuva konum="bildirim-1" adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
+
       {/* Liste */}
       {!bild.yuklendi ? (
         <div className="flex justify-center py-12 text-base-content/40"><Loader2 className="animate-spin" /></div>
@@ -181,6 +185,9 @@ export default function Bildirimler() {
           <Check size={16} /> Tümünü okundu işaretle
         </button>
       )}
+
+      {/* Reklam — liste altı */}
+      <ReklamYuva konum="bildirim-2" adsenseSlot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
     </div>
   )
 }
