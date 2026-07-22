@@ -5,6 +5,7 @@ import { getAuth } from './auth'
 import { searchByKeyword, normalize } from './marketfiyati'
 import { sepetHesapla } from './sepet'
 import { birimTespit } from './oneriler'
+import { izle } from './izleme'
 
 const LS = 'neredeucuz_akilli_liste'
 const LS_LISTELER = 'neredeucuz_listelerim'
@@ -144,6 +145,7 @@ export async function kayitliListeOlustur(ad, kalemler) {
   const kayit = { id: yeniId(), ad: isim, urunler }
   cache.listelerim = [kayit, ...cache.listelerim]
   lsSetK(LS_LISTELER, cache.listelerim); emit()
+  try { izle('liste', { baslik: kayit.ad, detay: { urun: urunler.length } }) } catch { /* yok */ }
   const u = uid()
   if (u) { try { await supabase.from('kayitli_listeler').insert({ id: kayit.id, kullanici_id: u, ad: kayit.ad, urunler: kayit.urunler }) } catch { /* yoksay */ } }
   return kayit

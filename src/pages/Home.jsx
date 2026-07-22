@@ -10,6 +10,7 @@ import { urunOnerileri } from '../lib/oneriler'
 import { barkodCoz } from '../lib/barkod'
 import { tl } from '../lib/format'
 import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla } from '../lib/store'
+import { izle } from '../lib/izleme'
 import { ReklamSerit } from '../components/ReklamRail'
 import AiAsistan from '../components/AiAsistan'
 import NasilKullanilir from '../components/NasilKullanilir'
@@ -78,6 +79,7 @@ export default function Home({ onSelect }) {
 
   async function barkodOkundu(kod) {
     setTarayici(false)
+    try { izle('barkod', { baslik: String(kod), detay: { kod: String(kod) } }) } catch { /* yok */ }
     const konum = getSnapshot().konum
     setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })

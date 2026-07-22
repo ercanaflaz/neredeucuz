@@ -11,9 +11,25 @@ import Admin from './pages/Admin'
 import LocationGate from './components/LocationGate'
 import ReklamRail from './components/ReklamRail'
 import HataSiniri from './components/HataSiniri'
+import GizlilikBildirimi from './components/GizlilikBildirimi'
 import { listeYukle as akilliListeYukle, listeleriYukle } from './lib/akilliSepet'
 import { reklamlariYukle } from './lib/reklam'
 import { ayarlariYukle } from './lib/ayarlar'
+import { sayfaIzle, izle, izlemeKullanici } from './lib/izleme'
+
+// Yol → okunur sayfa adı (analitik için)
+const SAYFA_ADI = {
+  '/': 'Ana Sayfa',
+  '/sepet': 'Akıllı Sepet',
+  '/favoriler': 'Favoriler',
+  '/giris': 'Giriş / Hesap',
+  '/admin': 'Admin',
+}
+function yolAdi(route) {
+  if (SAYFA_ADI[route]) return SAYFA_ADI[route]
+  const k = Object.keys(SAYFA_ADI).find((p) => p !== '/' && route.startsWith(p))
+  return k ? SAYFA_ADI[k] : 'Sayfa'
+}
 
 function useHash() {
   const [hash, setHash] = useState(window.location.hash || '#/')
@@ -33,6 +49,22 @@ export default function App() {
 
   useEffect(() => { konumBaslat(); reklamlariYukle(); ayarlariYukle() }, [])
 
+  // Giriş yapan kullanıcıyı olaylara bağla (anonim ziyaretçi kimliği korunur)
+  useEffect(() => { izlemeKullanici(auth.user?.id) }, [auth.user?.id])
+
+  // Sayfa / ürün görüntüleme takibi
+  useEffect(() => {
+    if (secili) {
+      izle('urun', {
+        baslik: secili.baslik || secili.ad || secili.isim || 'Ürün',
+        detay: { id: secili.id || null, marka: secili.marka || null },
+      })
+    } else {
+      sayfaIzle(hash, yolAdi(route))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hash, secili])
+
   useEffect(() => {
     const t = setTimeout(() => {
       favorileriYukle(auth.user?.id)
@@ -47,6 +79,8 @@ export default function App() {
   const route = hash.replace(/^#/, '') || '/'
   const sepetAdet = store.sepet.reduce((s, i) => s + (i.adet || 0), 0)
   const anaSayfa = !secili && route === '/'
+  const adminSayfa = !secili && route.startsWith('/admin')
+  const genisSayfa = anaSayfa || adminSayfa
 
   const nav = [
     { key: 'ana', href: '#/', icon: HomeIcon, label: 'Ana Sayfa', active: !secili && route === '/' },
@@ -70,6 +104,7 @@ export default function App() {
   return (
     <div className="min-h-full bg-base-200 flex flex-col">
       <LocationGate />
+      <GizlilikBildirimi />
 
       {/* ÜST BAR — masaüstünde menü linkleriyle */}
       <header className="bg-base-100 border-b border-base-300 sticky top-0 z-20">
@@ -106,13 +141,13 @@ export default function App() {
       {/* İÇERİK — masaüstünde solda/sağda reklam rayları */}
       <main className="flex-1 w-full max-w-[1500px] mx-auto px-4 pt-4 pb-24 md:pb-10">
         <div className="flex gap-5 justify-center">
-          <ReklamRail konum="sol" className="hidden xl:block w-40 shrink-0" />
+          {!adminSayfa && <ReklamRail konum="sol" className="hidden xl:block w-40 shrink-0" />}
           <div className="flex-1 min-w-0">
-            <div className={anaSayfa ? '' : 'max-w-2xl mx-auto'}>
+            <div className={genisSayfa ? '' : 'max-w-2xl mx-auto'}>
               <HataSiniri key={route + (secili?.id || '')}>{sayfa}</HataSiniri>
             </div>
           </div>
-          <ReklamRail konum="sag" className="hidden xl:block w-40 shrink-0" />
+          {!adminSayfa && <ReklamRail konum="sag" className="hidden xl:block w-40 shrink-0" />}
         </div>
       </main>
 

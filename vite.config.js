@@ -3,12 +3,13 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { geminiCalis } from './functions/api/gemini.js'
 import { barkodokuCoz } from './functions/api/barkod/[[path]].js'
+import { olayKaydet } from './functions/api/izle.js'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [react(), tailwindcss(), geminiDev(env), barkodDev(env)],
+    plugins: [react(), tailwindcss(), geminiDev(env), barkodDev(env), izleDev(env)],
     server: {
       // Yerelde CORS'u aşmak için marketfiyati API'sine proxy (yayında Pages Function).
       proxy: {
@@ -40,6 +41,32 @@ function barkodDev(env) {
           res.statusCode = 502
           res.end(JSON.stringify({ bulundu: false, hata: String(e) }))
         }
+      })
+    },
+  }
+}
+
+// Yerel geliştirmede /api/izle'yi çalıştırır (yayında Cloudflare fonksiyonu yapar).
+// Dev'de Cloudflare coğrafyası yoktur → geo boş kalır (yalnızca canlıda dolar).
+function izleDev(env) {
+  return {
+    name: 'izle-dev',
+    configureServer(server) {
+      server.middlewares.use('/api/izle', (req, res) => {
+        res.setHeader('content-type', 'application/json')
+        if (req.method !== 'POST') { res.statusCode = 405; return res.end('{}') }
+        let body = ''
+        req.on('data', (c) => (body += c))
+        req.on('end', async () => {
+          try {
+            const out = await olayKaydet(env, JSON.parse(body || '{}'), {})
+            res.statusCode = out.status === 204 ? 204 : out.status
+            res.end(out.body ? JSON.stringify(out.body) : '')
+          } catch (e) {
+            res.statusCode = 200
+            res.end(JSON.stringify({ ok: false, hata: String(e) }))
+          }
+        })
       })
     },
   }

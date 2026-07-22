@@ -3,6 +3,7 @@
 import { supabase } from './supabase'
 import { getAuth } from './auth'
 import { nearestDepots, normalizeNearest } from './marketfiyati'
+import { izle } from './izleme'
 
 const LS_SEPET = 'neredeucuz_sepet'
 const LS_FAV = 'neredeucuz_favoriler'
@@ -236,4 +237,6 @@ export function aramaLogla(terim) {
   const t = String(terim || '').trim()
   if (!t) return
   seDene(() => supabase.from('aramalar').insert({ terim: t.toLocaleLowerCase('tr'), kullanici_id: uid() }))
+  // Analitik olay akışı (oturum zaman çizelgesinde görünsün)
+  try { izle('arama', { baslik: t }) } catch { /* yok */ }
 }
