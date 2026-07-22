@@ -208,6 +208,7 @@ export default function Admin() {
     { k: 'goruntuleme', ad: 'Sayfa & Ürün', ikon: Eye },
     { k: 'arama', ad: 'Aramalar', ikon: SearchIcon },
     { k: 'uye', ad: 'Kullanıcılar', ikon: UserCircle },
+    { k: 'bildirim', ad: 'Bildirimler', ikon: Bell },
     { k: 'icerik', ad: 'İçerik & Reklam', ikon: Megaphone },
     { k: 'ayar', ad: 'Ayarlar', ikon: Settings },
   ]
@@ -315,7 +316,8 @@ export default function Admin() {
             {bolum === 'goruntuleme' && <Goruntuleme olaylar={olaylar} v={v} />}
             {bolum === 'arama' && <Aramalar olaylar={olaylar} v={v} />}
             {bolum === 'uye' && <Kullanicilar v={v} />}
-            {bolum === 'icerik' && <div className="space-y-4"><BildirimYonetimi /><ReklamYonetimi /><VideoYonetimi /></div>}
+            {bolum === 'bildirim' && <BildirimYonetimi />}
+            {bolum === 'icerik' && <div className="space-y-4"><ReklamYonetimi /><VideoYonetimi /></div>}
             {bolum === 'ayar' && <Ayarlar />}
           </>
         )}

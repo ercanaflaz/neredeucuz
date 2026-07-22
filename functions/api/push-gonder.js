@@ -61,15 +61,6 @@ export async function pushGonderCalis(env, token, govde) {
     tag: 'duyuru',
   }
 
-  // Uygulama içi geçmişe de yaz (herkese açık duyuru → kullanici_id null)
-  try {
-    await fetch(url + '/rest/v1/bildirimler', {
-      method: 'POST',
-      headers: { ...admHead, 'content-type': 'application/json', prefer: 'return=minimal' },
-      body: JSON.stringify({ kullanici_id: null, baslik: govde.baslik || 'neredeucuz', govde: govde.mesaj || '', url: govde.url || '/#/', tur: 'duyuru' }),
-    })
-  } catch { /* geçmişe yazılamazsa gönderim yine de sürsün */ }
-
   let gonderildi = 0
   const olu = []
   const detay = [] // teşhis: her endpoint için ana bilgisayar + durum
@@ -90,6 +81,19 @@ export async function pushGonderCalis(env, token, govde) {
       })
     } catch { /* yok */ }
   }
+
+  // Uygulama içi geçmişe yaz (rapor için ulaşan/toplam sayılarıyla).
+  try {
+    await fetch(url + '/rest/v1/bildirimler', {
+      method: 'POST',
+      headers: { ...admHead, 'content-type': 'application/json', prefer: 'return=minimal' },
+      body: JSON.stringify({
+        kullanici_id: null, baslik: govde.baslik || 'neredeucuz', govde: govde.mesaj || '',
+        url: govde.url || '/#/', tur: 'duyuru', gonderildi, toplam: abonelikler.length,
+      }),
+    })
+  } catch { /* geçmişe yazılamazsa gönderim yine de başarılı */ }
+
   return { status: 200, body: { gonderildi, toplam: abonelikler.length, temizlenen: olu.length, detay } }
 }
 
