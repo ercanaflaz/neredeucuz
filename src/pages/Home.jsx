@@ -459,11 +459,12 @@ export default function Home({ onSelect }) {
                     key={k.ad}
                     onClick={() => setAcikKat(acik ? null : k.ad)}
                     aria-expanded={acik}
-                    className={`relative rounded-3xl p-4 bg-gradient-to-br ${k.grad} text-white text-left shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition ${acik ? 'ring-2 ring-white/80 ring-offset-2 ring-offset-base-100' : ''}`}
+                    style={{ backgroundImage: `linear-gradient(135deg, ${k.g1}, ${k.g2})`, textShadow: '0 1px 2px rgba(0,0,0,0.28)' }}
+                    className={`relative rounded-3xl p-4 text-white text-left shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition ${acik ? 'ring-2 ring-white ring-offset-2 ring-offset-base-100' : ''}`}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="text-2xl">{k.emoji}</div>
-                      <ChevronDown size={18} className={`opacity-80 transition-transform ${acik ? 'rotate-180' : ''}`} />
+                      <div className="text-2xl" style={{ textShadow: 'none' }}>{k.emoji}</div>
+                      <ChevronDown size={18} className={`opacity-90 transition-transform ${acik ? 'rotate-180' : ''}`} />
                     </div>
                     <div className="font-bold text-sm mt-2 leading-tight">{k.ad}</div>
                   </button>
