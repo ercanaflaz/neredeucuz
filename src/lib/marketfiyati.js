@@ -78,24 +78,34 @@ export async function searchByKeyword(keywords, loc) {
 export async function searchByBarcode(barcode, loc) {
   const body = { identity: String(barcode), identityType: 'barcode' }
   if (konumVarMi(loc)) {
-    return post('searchByIdentity', {
-      ...body,
-      latitude: loc.latitude,
-      longitude: loc.longitude,
-      distance: loc.distance ?? VARSAYILAN_YARICAP_KM,
-    })
+    // Konuma göre DOĞRU şubeler: önce bölge depo id'leri, sonra o depolarla sorgu.
+    // (searchByIdentity lat/lon/distance ile yanlış şehirdeki depoyu döndürebiliyor.)
+    const ids = await bolgeDepoIdleri(loc)
+    if (ids.length) body.depots = ids
+    else {
+      body.latitude = loc.latitude
+      body.longitude = loc.longitude
+      body.distance = loc.distance ?? VARSAYILAN_YARICAP_KM
+    }
   }
   return post('searchByIdentity', body)
 }
 
 // Tek ürünü id'siyle sorgular — o ürünü satan TÜM marketlerin fiyatını
 // döndürür (ürün detayında birkaç marketi fiyata göre göstermek için).
-export function urunGetirById(id, loc) {
+export async function urunGetirById(id, loc) {
   const body = { identity: String(id), identityType: 'id' }
   if (konumVarMi(loc)) {
-    body.latitude = loc.latitude
-    body.longitude = loc.longitude
-    body.distance = loc.distance ?? VARSAYILAN_YARICAP_KM
+    // Konuma göre DOĞRU şubeler: önce bölge depo id'leri (/nearest), sonra o
+    // depolarla sorgula. searchByIdentity lat/lon/distance ile yanlış şehirdeki
+    // depoyu (ör. İskenderun isterken İstanbul) döndürebiliyor.
+    const ids = await bolgeDepoIdleri(loc)
+    if (ids.length) body.depots = ids
+    else {
+      body.latitude = loc.latitude
+      body.longitude = loc.longitude
+      body.distance = loc.distance ?? VARSAYILAN_YARICAP_KM
+    }
   }
   return post('searchByIdentity', body)
 }
