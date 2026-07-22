@@ -112,16 +112,62 @@ const SIVI = [
   'ayçiçek yağı', 'zeytinyağı', 'zeytin yağı', 'mısır yağı', 'sıvı yağ', 'fındık yağı', 'kanola yağı',
   'sıvı sabun', 'sıvı deterjan', 'çamaşır suyu', 'yumuşatıcı',
 ]
+// Tartılan tahıl / bakliyat / kuru gıda → kg
+const TAHIL = [
+  'pirinç', 'bulgur', 'mercimek', 'nohut', 'un', 'şeker', 'irmik', 'yarma', 'buğday',
+  'kuru fasulye', 'barbunya', 'börülce', 'nişasta',
+]
+// Paketli / çoklu sayılan ürünler → "paket" (yanında kaçlı seçilir)
+const PAKET = [
+  'yumurta', 'tuvalet kağıdı', 'kağıt havlu', 'peçete', 'ıslak mendil', 'ıslak havlu',
+  'çöp poşeti', 'çöp torbası', 'buzdolabı poşeti', 'kilitli poşet',
+]
+// Kavanoz / kutu ürün → adet (kg değil)
+const KAVANOZ = ['salça', 'turşu', 'reçel', 'pekmez', 'ketçap', 'mayonez', 'hardal', 'konserve', 'bal', 'sos']
+
+// Paketli ürün için "kaçlı" seçenekleri
+const PAKET_SECENEK = {
+  'yumurta': ["10'lu", "15'li", "30'lu"],
+  'tuvalet kağıdı': ["8'li", "16'lı", "24'lü", "32'li", "4'lü", "12'li"],
+  'kağıt havlu': ["4'lü", "2'li", "6'lı", "8'li", "12'li"],
+  'peçete': ["tekli", "2'li"],
+  'ıslak mendil': ["tekli", "2'li", "4'lü"],
+  'çöp poşeti': ["tekli", "2'li", "3'lü"],
+}
+const PAKET_VARSAYILAN = ["tekli", "2'li", "4'lü", "6'lı"]
+
+// Kelime başına eşleşme — "et " içindeki "tuvalet", "bal" içindeki "balık" gibi
+// yanlış eşleşmeleri önler. Kısa (≤3 harf) anahtarlar yalnız TAM kelimeyle eşleşir.
+function eslesir(terim, anahtarlar) {
+  const s = String(terim || '').toLocaleLowerCase('tr').trim()
+  const kelimeler = s.split(/\s+/)
+  return anahtarlar.some((k) => {
+    const kk = k.trim()
+    if (kk.includes(' ')) return s.includes(kk)
+    return kelimeler.some((w) => (kk.length >= 4 ? (w === kk || w.startsWith(kk)) : w === kk))
+  })
+}
+
 // Not: sade "yağ" çoğunlukla sıvıdır → lt. "tereyağı"/"kremayağı" hariç.
 export function birimTespit(terim) {
-  const s = ' ' + String(terim || '').toLocaleLowerCase('tr') + ' '
-  if (SIVI.some((k) => s.includes(k))) return 'lt'
+  const s = String(terim || '').toLocaleLowerCase('tr')
+  if (eslesir(s, PAKET)) return 'paket'
+  if (eslesir(s, SIVI)) return 'lt'
   if (s.includes('yağ') && !s.includes('tereyağ') && !s.includes('kremayağ')) return 'lt'
-  if (KILOLU.some((k) => s.includes(k))) return 'kg'
+  if (eslesir(s, KAVANOZ)) return 'adet'
+  if (eslesir(s, KILOLU) || eslesir(s, TAHIL)) return 'kg'
   return 'adet'
 }
 export function kiloluMu(terim) {
   return birimTespit(terim) === 'kg'
+}
+// Paketli ürünün "kaçlı" seçenekleri (ör. yumurta → 10'lu/15'li/30'lu)
+export function paketSecenekleri(terim) {
+  const s = String(terim || '').toLocaleLowerCase('tr')
+  for (const k of Object.keys(PAKET_SECENEK)) {
+    if (eslesir(s, [k])) return PAKET_SECENEK[k]
+  }
+  return PAKET_VARSAYILAN
 }
 
 // --- Tamamlayıcı öneriler: kutu boşken "bunlar da lazım olabilir" ---

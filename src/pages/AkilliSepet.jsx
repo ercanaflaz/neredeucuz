@@ -1,10 +1,11 @@
 import { useState, useSyncExternalStore } from 'react'
 import { Wand2, Plus, Trash2, Loader2, ShoppingCart, Ban, Store, Trophy, Save, FolderOpen, Bookmark, ListPlus, Tag, Coins } from 'lucide-react'
 import {
-  subscribe, getSnapshot, urunEkle, topluEkle, urunSil, adetDegistir, birimDegistir,
+  subscribe, getSnapshot, urunEkle, topluEkle, urunSil, adetDegistir, birimDegistir, paketBoyuAyarla,
   sepetiOlustur, markaIstemeVeYenidenSec, urunIstemeVeYenidenSec, sonucuTemizle,
   listeKaydet, listeAc, listeSilId, kalemDegistir,
 } from '../lib/akilliSepet'
+import { paketSecenekleri } from '../lib/oneriler'
 import { listeyiAyristir } from '../lib/gemini'
 import { getSnapshot as storeSnapshot, sepeteEkle } from '../lib/store'
 import { tl } from '../lib/format'
@@ -55,8 +56,8 @@ export default function AkilliSepet({ onSelect, user }) {
     await sepetiOlustur(storeSnapshot().konum, mod)
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }
-  // Birim döngüsü: adet → kg → lt → adet
-  const BIRIMLER = ['adet', 'kg', 'lt']
+  // Birim döngüsü: adet → kg → lt → paket → adet
+  const BIRIMLER = ['adet', 'kg', 'lt', 'paket']
   const birimSonraki = (b) => BIRIMLER[(BIRIMLER.indexOf(b || 'adet') + 1) % BIRIMLER.length]
 
   async function kaydet() {
@@ -176,10 +177,24 @@ export default function AkilliSepet({ onSelect, user }) {
                 </div>
                 {(() => {
                   const birim = it.birim || 'adet'
-                  const tartili = birim !== 'adet'
-                  const step = tartili ? 0.5 : 1
+                  const olcumlu = birim === 'kg' || birim === 'lt'
+                  const step = olcumlu ? 0.5 : 1
+                  const paket = birim === 'paket'
+                  const secenekler = paket ? paketSecenekleri(it.terim) : []
                   return (
                     <div className="flex items-center gap-1.5">
+                      {/* Paketli ürün → "kaçlı" seçici */}
+                      {paket && (
+                        <select
+                          value={it.paketBoyu || secenekler[0] || ''}
+                          onChange={(e) => paketBoyuAyarla(it.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="select select-bordered select-xs font-semibold"
+                          title="Kaçlı paket?"
+                        >
+                          {secenekler.map((o) => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      )}
                       <div className="flex items-center gap-1">
                         <button onClick={() => adetDegistir(it.id, +(it.adet - step).toFixed(2))} className="btn btn-xs btn-circle btn-ghost">−</button>
                         <span className="min-w-[2rem] text-center text-sm font-medium">{it.adet}</span>
@@ -187,7 +202,7 @@ export default function AkilliSepet({ onSelect, user }) {
                       </div>
                       <button
                         onClick={() => birimDegistir(it.id, birimSonraki(birim))}
-                        title="Birimi değiştir (adet / kg / lt)"
+                        title="Birimi değiştir (adet / kg / lt / paket)"
                         className="btn btn-xs btn-outline min-w-[3rem] font-semibold"
                       >
                         {birim} ⇄

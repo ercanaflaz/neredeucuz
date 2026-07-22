@@ -4,8 +4,15 @@ import { supabase } from './supabase'
 import { getAuth } from './auth'
 import { searchByKeyword, normalize } from './marketfiyati'
 import { sepetHesapla } from './sepet'
-import { birimTespit } from './oneriler'
+import { birimTespit, paketSecenekleri } from './oneriler'
 import { izle } from './izleme'
+
+// Paketli ürün için varsayılan "kaçlı" (ör. yumurta → 10'lu). Paket değilse null.
+function ilkPaketBoyu(terim) {
+  if (birimTespit(terim) !== 'paket') return null
+  const o = paketSecenekleri(terim)
+  return o && o.length ? o[0] : null
+}
 
 const LS = 'neredeucuz_akilli_liste'
 const LS_LISTELER = 'neredeucuz_listelerim'
@@ -118,6 +125,7 @@ export async function yeniListeOlustur(ad, kalemler) {
         terim,
         adet: k.adet || 1,
         birim: birimTespit(terim),
+        paketBoyu: ilkPaketBoyu(terim),
         tercihMarka: k.marka || null,
         istenmeyenMarkalar: [],
         istenmeyenUrunler: [],
@@ -139,7 +147,7 @@ export async function kayitliListeOlustur(ad, kalemler) {
   const urunler = (kalemler || [])
     .map((k) => {
       const terim = duzenleTerim(k.terim)
-      return { id: yeniId(), terim, adet: k.adet || 1, birim: birimTespit(terim), tercihMarka: k.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] }
+      return { id: yeniId(), terim, adet: k.adet || 1, birim: birimTespit(terim), paketBoyu: ilkPaketBoyu(terim), tercihMarka: k.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] }
     })
     .filter((x) => x.terim)
   const kayit = { id: yeniId(), ad: isim, urunler }
@@ -160,7 +168,7 @@ export async function kayitliListeyeEkle(listeId, kalem) {
   const urunler = JSON.parse(JSON.stringify(l.urunler || []))
   const mevcut = urunler.find((x) => x.terim.toLocaleLowerCase('tr') === t)
   if (mevcut) mevcut.adet = (mevcut.adet || 1) + (kalem.adet || 1)
-  else urunler.push({ id: yeniId(), terim: t, adet: kalem.adet || 1, birim: birimTespit(t), tercihMarka: kalem.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
+  else urunler.push({ id: yeniId(), terim: t, adet: kalem.adet || 1, birim: birimTespit(t), paketBoyu: ilkPaketBoyu(t), tercihMarka: kalem.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
   cache.listelerim = cache.listelerim.map((x) => (x.id === listeId ? { ...x, urunler } : x))
   lsSetK(LS_LISTELER, cache.listelerim)
   // Bu liste şu an aktifse aktif listeyi de güncelle
@@ -202,7 +210,7 @@ export function urunEkle(terim, adet) {
   const kg = birim !== 'adet'
   const mevcut = cache.liste.find((x) => x.terim.toLocaleLowerCase('tr') === t)
   if (mevcut) mevcut.adet += (kg ? 0.5 : 1)
-  else cache.liste.push({ id: yeniId(), terim: t, adet: adet != null ? adet : 1, birim, tercihMarka: null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
+  else cache.liste.push({ id: yeniId(), terim: t, adet: adet != null ? adet : 1, birim, paketBoyu: ilkPaketBoyu(t), tercihMarka: null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
   kaydet(); emit()
 }
 
@@ -213,7 +221,7 @@ export function topluEkle(kalemler) {
     if (!t) return
     const mevcut = cache.liste.find((x) => x.terim.toLocaleLowerCase('tr') === t)
     if (mevcut) mevcut.adet = Math.max(mevcut.adet, k.adet || 1)
-    else cache.liste.push({ id: yeniId(), terim: t, adet: k.adet || 1, birim: birimTespit(t), tercihMarka: k.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
+    else cache.liste.push({ id: yeniId(), terim: t, adet: k.adet || 1, birim: birimTespit(t), paketBoyu: ilkPaketBoyu(t), tercihMarka: k.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
   })
   kaydet(); emit()
 }
@@ -227,7 +235,17 @@ export function topluDegistir(kalemler) {
 // Bir kalemin birimini değiştir (adet ↔ kg ↔ lt).
 export function birimDegistir(id, birim) {
   const it = cache.liste.find((x) => x.id === id); if (!it) return
-  it.birim = birim; kaydet(); emit()
+  it.birim = birim
+  // Pakete geçince varsayılan "kaçlı" gelsin; paketten çıkınca temizlensin.
+  if (birim === 'paket') { if (!it.paketBoyu) { const o = paketSecenekleri(it.terim); it.paketBoyu = (o && o[0]) || null } }
+  else it.paketBoyu = null
+  kaydet(); emit()
+}
+
+// Paketli ürünün "kaçlı" değerini ayarla (ör. yumurta → 30'lu)
+export function paketBoyuAyarla(id, boyu) {
+  const it = cache.liste.find((x) => x.id === id); if (!it) return
+  it.paketBoyu = boyu || null; kaydet(); emit()
 }
 
 export function urunSil(id) { cache.liste = cache.liste.filter((x) => x.id !== id); kaydet(); emit() }
