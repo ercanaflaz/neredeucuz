@@ -1,4 +1,4 @@
-import { useSyncExternalStore, useEffect, useState } from 'react'
+import { useSyncExternalStore, useEffect, useState, useRef } from 'react'
 import { Home as HomeIcon, Search, Heart, User, ShoppingCart, Shield } from 'lucide-react'
 import { subscribeAuth, getAuth } from './lib/auth'
 import { subscribe, getSnapshot, favorileriYukle, alarmlariYukle, sepetiYukle, konumBaslat } from './lib/store'
@@ -55,14 +55,19 @@ export default function App() {
   // Giriş yapan kullanıcıyı olaylara bağla (anonim ziyaretçi kimliği korunur)
   useEffect(() => { izlemeKullanici(auth.user?.id) }, [auth.user?.id])
 
-  // Sayfa / ürün görüntüleme takibi
+  // Sayfa / ürün görüntüleme takibi (aynı ürünü/sayfayı iki kez saymayı önle)
+  const sonUrun = useRef(null)
   useEffect(() => {
     if (secili) {
+      const anahtar = secili.id || secili.title || secili.baslik
+      if (sonUrun.current === anahtar) return
+      sonUrun.current = anahtar
       izle('urun', {
         baslik: secili.title || secili.baslik || secili.ad || secili.isim || 'Ürün',
         detay: { id: secili.id || null, marka: secili.brand || secili.marka || null },
       })
     } else {
+      sonUrun.current = null
       sayfaIzle(hash, yolAdi(route))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
