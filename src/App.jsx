@@ -22,6 +22,7 @@ import { listeYukle as akilliListeYukle, listeleriYukle } from './lib/akilliSepe
 import { reklamlariYukle } from './lib/reklam'
 import { ayarlariYukle } from './lib/ayarlar'
 import { sayfaIzle, izle, izlemeKullanici } from './lib/izleme'
+import { subscribeBildirim, getBildirim, bildirimleriYukle } from './lib/bildirimler'
 
 // Yol → okunur sayfa adı (analitik için)
 const SAYFA_ADI = {
@@ -51,10 +52,14 @@ function useHash() {
 export default function App() {
   const auth = useSyncExternalStore(subscribeAuth, getAuth)
   const store = useSyncExternalStore(subscribe, getSnapshot)
+  const bild = useSyncExternalStore(subscribeBildirim, getBildirim)
   const hash = useHash()
   const [secili, setSecili] = useState(null)
 
   useEffect(() => { konumBaslat(); reklamlariYukle(); ayarlariYukle() }, [])
+
+  // Bildirimleri yükle (rozet için) — açılışta ve kullanıcı değişince
+  useEffect(() => { bildirimleriYukle() }, [auth.user?.id])
 
   // Giriş yapan kullanıcıyı olaylara bağla (anonim ziyaretçi kimliği korunur)
   useEffect(() => { izlemeKullanici(auth.user?.id) }, [auth.user?.id])
@@ -95,8 +100,9 @@ export default function App() {
   const adminSayfa = !secili && route.startsWith('/admin')
   const reklamVerSayfa = !secili && route.startsWith('/reklam-ver')
   const genisSayfa = anaSayfa || adminSayfa || reklamVerSayfa
-  // Alt reklam + çağrı şeridi: admin ve reklam-ver dışında her sayfada
-  const altReklam = !adminSayfa && !reklamVerSayfa
+  // Alt reklam + çağrı şeridi: admin, reklam-ver ve bildirimler dışında (bildirimler sade kalsın)
+  const altReklam = !adminSayfa && !reklamVerSayfa && !bildirimAktif
+  const yanReklamGizle = adminSayfa || bildirimAktif
 
   const nav = [
     { key: 'ana', href: '#/', icon: HomeIcon, label: 'Ana Sayfa', active: !secili && route === '/' },
@@ -135,19 +141,8 @@ export default function App() {
           </a>
           <span className="text-xs text-base-content/50 hidden sm:inline">· en ucuz market senin cebinde</span>
 
-          {/* Sağ taraf: zil (her boyutta) + masaüstü menü */}
+          {/* Sağ taraf: masaüstü menü + EN SAĞDA zil */}
           <div className="ml-auto flex items-center gap-1">
-            <a
-              href="#/bildirimler"
-              onClick={() => setSecili(null)}
-              aria-label="Bildirimler"
-              className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition ${
-                bildirimAktif ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'
-              }`}
-            >
-              <Bell size={18} />
-            </a>
-
             <nav className="hidden md:flex items-center gap-1">
               {nav.map((n) => (
                 <a
@@ -168,6 +163,23 @@ export default function App() {
                 </a>
               ))}
             </nav>
+
+            {/* Zil — en sağda, okunmamış rozetli (her boyutta) */}
+            <a
+              href="#/bildirimler"
+              onClick={() => setSecili(null)}
+              aria-label="Bildirimler"
+              className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition md:ml-1 ${
+                bildirimAktif ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'
+              }`}
+            >
+              <Bell size={20} />
+              {bild.okunmamis > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-secondary text-secondary-content text-[10px] font-bold grid place-items-center">
+                  {bild.okunmamis > 9 ? '9+' : bild.okunmamis}
+                </span>
+              )}
+            </a>
           </div>
         </div>
       </header>
@@ -175,7 +187,7 @@ export default function App() {
       {/* İÇERİK — masaüstünde solda/sağda reklam rayları */}
       <main className="flex-1 w-full max-w-[1500px] mx-auto px-4 pt-4 pb-24 md:pb-10">
         <div className="flex gap-5 justify-center">
-          {!adminSayfa && <ReklamRail konum="sol" className="hidden xl:block w-40 shrink-0" />}
+          {!yanReklamGizle && <ReklamRail konum="sol" className="hidden xl:block w-40 shrink-0" />}
           <div className="flex-1 min-w-0">
             <div className={genisSayfa ? '' : 'max-w-2xl mx-auto'}>
               <HataSiniri key={route + (secili?.id || '')}>{sayfa}</HataSiniri>
@@ -187,7 +199,7 @@ export default function App() {
               )}
             </div>
           </div>
-          {!adminSayfa && <ReklamRail konum="sag" className="hidden xl:block w-40 shrink-0" />}
+          {!yanReklamGizle && <ReklamRail konum="sag" className="hidden xl:block w-40 shrink-0" />}
         </div>
       </main>
 
