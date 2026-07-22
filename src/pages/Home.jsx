@@ -6,7 +6,7 @@ import MarketBadge from '../components/MarketBadge'
 import { KATEGORILER } from '../data/kategoriler'
 import { populerAramalariGetir } from '../lib/populerAramalar'
 import { marka } from '../lib/markets'
-import { searchByKeyword, searchByBarcode, normalize } from '../lib/marketfiyati'
+import { searchByKeyword, searchByCategory, searchByBarcode, normalize } from '../lib/marketfiyati'
 import { urunOnerileri } from '../lib/oneriler'
 import { barkodCoz } from '../lib/barkod'
 import { tl } from '../lib/format'
@@ -68,6 +68,7 @@ export default function Home({ onSelect }) {
   // Kategoriler (açık olan alt-başlık paneli) + dinamik "en çok aranan"
   const [acikKat, setAcikKat] = useState(null)     // açık ana kategori adı
   const [populer, setPopuler] = useState([])       // gerçek arama verisinden
+  const [aktifArama, setAktifArama] = useState(null) // {tip:'kelime'|'kategori', deger, menu}
 
   // "En çok aranan"ı gerçek arama kayıtlarından yükle (yoksa statik yedek).
   useEffect(() => {
@@ -93,13 +94,17 @@ export default function Home({ onSelect }) {
     return [...say.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([w, n]) => ({ w, n }))
   }
 
-  // Arama motorunu çalıştır (sonuçları + toplamı ayarlar). Çipleri değiştirmez.
-  async function calistir(kelime) {
+  // Arama/kategori motorunu çalıştır (sonuçları + toplamı ayarlar). Çipleri değiştirmez.
+  // arama: {tip:'kelime'|'kategori', deger, menu}. Geriye dönük: string de kabul eder (kelime).
+  async function calistir(arama) {
+    const a = typeof arama === 'string' ? { tip: 'kelime', deger: arama } : arama
     const konum = getSnapshot().konum
     setYukleniyor(true); setHata(null); setBilgi('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
     try {
-      const res = await searchByKeyword(kelime, konum)
+      const res = a.tip === 'kategori'
+        ? await searchByCategory(a.deger, konum, { menu: a.menu })
+        : await searchByKeyword(a.deger, konum)
       const list = normalize(res, konum)
       setSonuclar(list)
       setToplam(res?.numberOfFound || list.length)
@@ -124,8 +129,24 @@ export default function Home({ onSelect }) {
     oneriKapat()
     setAranan(k)
     aramaLogla(k)
-    const list = await calistir(k)
+    const arama = { tip: 'kelime', deger: k }
+    setAktifArama(arama)
+    const list = await calistir(arama)
     setTurler(turleriHesapla(list, k))
+  }
+
+  // GERÇEK kategori araması — marketfiyati kategori etiketine göre süzer.
+  // ad: kategori adı · menu: true=ana kategori (tümü), false=alt kategori
+  async function kategoriAra(ad, menu = false) {
+    setQ(''); setAktifKelime(ad); setAnaKelime(ad)
+    setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setBarkodUrunId(null); setTurler([])
+    setToplam(0); setSayfa(0)
+    oneriKapat()
+    setAranan(ad)
+    try { izle('kategori', { baslik: ad, detay: { menu } }) } catch { /* yok */ }
+    const arama = { tip: 'kategori', deger: ad, menu }
+    setAktifArama(arama)
+    await calistir(arama)
   }
 
   // Tür çipine tıkla → o türü SUNUCUDAN yeniden ara (tam liste + doğru sayı).
@@ -134,17 +155,21 @@ export default function Home({ onSelect }) {
     setTurFiltre(yeni)
     const kelime = yeni ? `${w} ${anaKelime}`.trim() : anaKelime
     setAktifKelime(kelime)
-    await calistir(kelime)
+    const arama = { tip: 'kelime', deger: kelime }
+    setAktifArama(arama)
+    await calistir(arama)
   }
 
   // Sonraki sayfayı getir ve mevcut listeye ekle (tekilleştirerek).
   async function dahaGetir() {
-    if (dahaYuk || !aktifKelime) return
+    if (dahaYuk || !aktifArama) return
     const konum = getSnapshot().konum
     const yeni = sayfa + 1
     setDahaYuk(true)
     try {
-      const res = await searchByKeyword(aktifKelime, konum, { page: yeni })
+      const res = aktifArama.tip === 'kategori'
+        ? await searchByCategory(aktifArama.deger, konum, { page: yeni, menu: aktifArama.menu })
+        : await searchByKeyword(aktifArama.deger, konum, { page: yeni })
       const list = normalize(res, konum)
       setSonuclar((o) => {
         const ids = new Set(o.map((x) => x.id))
@@ -159,7 +184,7 @@ export default function Home({ onSelect }) {
     setTarayici(false)
     try { izle('barkod', { baslik: String(kod), detay: { kod: String(kod) } }) } catch { /* yok */ }
     const konum = getSnapshot().konum
-    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setTurler([]); setAnaKelime(''); setToplam(0); setSayfa(0)
+    setYukleniyor(true); setHata(null); setBilgi(''); setQ(''); setAranan(`barkod: ${kod}`); setAktifKelime(''); setAktifArama(null); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setTurler([]); setAnaKelime(''); setToplam(0); setSayfa(0)
     window.scrollTo({ top: 0, behavior: 'smooth' })
     try {
       const res = await searchByBarcode(kod, konum)
@@ -217,7 +242,7 @@ export default function Home({ onSelect }) {
 
   function yaricapSec(km) {
     yaricapDegistir(km)
-    if (aktifKelime) setTimeout(() => aramaYap(aktifKelime), 0)
+    if (aktifArama) setTimeout(() => calistir(aktifArama), 0)
   }
 
   // "Anlık fiyat" → yakın marketleri (ve arama sonucunu) canlı yenile
@@ -228,7 +253,7 @@ export default function Home({ onSelect }) {
     try {
       if (store.konumDurumu === 'tamam') await yakinMarketleriYukle()
       else konumIste()
-      if (aktifKelime) await aramaYap(aktifKelime)
+      if (aktifArama) await calistir(aktifArama)
     } catch { /* yok */ }
     finally { setTimeout(() => setYeniliyor(false), 500) }
   }
@@ -236,6 +261,7 @@ export default function Home({ onSelect }) {
   // Aramayı temizle → ana sayfa görünümüne dön.
   function aramayiTemizle() {
     setAranan(''); setAktifKelime(''); setQ(''); setSonuclar([]); setToplam(0); setSayfa(0)
+    setAktifArama(null)
     setHata(null); setBilgi(''); setMarketFiltre(null); setUrunMarka(null); setSadeceKampanya(false); setTurFiltre(null); setTurler([]); setAnaKelime(''); setBarkodUrunId(null)
     oneriKapat()
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -481,17 +507,25 @@ export default function Home({ onSelect }) {
                   <div className="flex items-center gap-2 mb-2.5">
                     <span className="text-lg">{k.emoji}</span>
                     <span className="font-semibold text-sm">{k.ad}</span>
-                    <span className="text-xs text-base-content/40">— ne arıyorsun?</span>
+                    <span className="text-xs text-base-content/40">— alt kategori seç</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {/* Tümü — ana kategorinin tamamı (menuCategory:true) */}
+                    <button
+                      onClick={() => kategoriAra(k.ad, true)}
+                      title={`Tüm ${k.ad} ürünleri`}
+                      className="px-3.5 py-2 rounded-full text-sm font-semibold border-2 border-dashed border-base-content/25 bg-base-100 hover:bg-base-200 transition active:scale-95"
+                    >
+                      ⭐ Tümü
+                    </button>
                     {k.alt.map((a) => (
                       <button
-                        key={a.ad}
-                        onClick={() => aramaYap(a.terim)}
-                        title={`"${a.ad}" ürünlerini ara`}
+                        key={a}
+                        onClick={() => kategoriAra(a, false)}
+                        title={`"${a}" kategorisi`}
                         className={`px-3.5 py-2 rounded-full text-sm font-medium border transition active:scale-95 ${AKSAN[k.renk]?.cip || 'bg-base-200 border-base-300 hover:bg-base-300'}`}
                       >
-                        {a.ad}
+                        {a}
                       </button>
                     ))}
                   </div>

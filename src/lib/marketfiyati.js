@@ -74,6 +74,25 @@ export async function searchByKeyword(keywords, loc, { page = 0, size = 36 } = {
   return post('search', body)
 }
 
+// GERÇEK kategori araması (marketfiyati'nın /searchByCategories endpoint'i).
+// Kelime araması değil; ürünün kategori etiketine göre süzer.
+//  - menu=false: alt kategori (ör. "Kırmızı Et", "Sebze")
+//  - menu=true : ana kategori (ör. "Temel Gıda") — tüm alt kategorileri kapsar
+// Konum varsa bölge depolarıyla yerelleştirilir; yoksa Türkiye geneli.
+export async function searchByCategory(kategoriAdi, loc, { page = 0, size = 36, menu = false } = {}) {
+  const body = { menuCategory: menu, keywords: kategoriAdi, pages: page, size }
+  if (konumVarMi(loc)) {
+    const depots = await bolgeDepoIdleri(loc)
+    if (depots.length) body.depots = depots
+    else {
+      body.latitude = loc.latitude
+      body.longitude = loc.longitude
+      body.distance = loc.distance ?? VARSAYILAN_YARICAP_KM
+    }
+  }
+  return post('searchByCategories', body)
+}
+
 // Barkod ile arama. Barkod tek ürünü döndürür; bölge süzmesini istemci
 // tarafındaki mesafe filtresi yapar (searchByIdentity depots almıyor).
 export async function searchByBarcode(barcode, loc) {
