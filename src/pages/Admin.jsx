@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { getAuth, cikisYap } from '../lib/auth'
 import { tarih } from '../lib/format'
 import ReklamYonetimi from '../components/ReklamYonetimi'
+import BrosurYonetimi from '../components/BrosurYonetimi'
 import VideoYonetimi from '../components/VideoYonetimi'
 import BildirimYonetimi from '../components/BildirimYonetimi'
 
@@ -317,7 +318,7 @@ export default function Admin() {
             {bolum === 'arama' && <Aramalar olaylar={olaylar} v={v} />}
             {bolum === 'uye' && <Kullanicilar v={v} />}
             {bolum === 'bildirim' && <BildirimYonetimi />}
-            {bolum === 'icerik' && <div className="space-y-4"><ReklamYonetimi /><VideoYonetimi /></div>}
+            {bolum === 'icerik' && <div className="space-y-4"><BrosurYonetimi /><ReklamYonetimi /><VideoYonetimi /></div>}
             {bolum === 'ayar' && <Ayarlar />}
           </>
         )}
