@@ -7,7 +7,11 @@ import { supabase } from '../lib/supabase'
 
 // --- İLETİŞİM (istersen değiştir) ---
 const EPOSTA = 'aflazercan@gmail.com'
-const WHATSAPP = '' // ör. '905385900295' — dolu olursa WhatsApp butonu görünür
+const WHATSAPP = '905385900295' // 0538 590 09 25 → uluslararası; dolu olursa WhatsApp butonu görünür
+// Canlı ziyaretçi sayıları — trafik anlamlı büyüyene kadar KAPALI.
+// (Düşük ve bot ağırlıklı sayılar reklam satışında ters etki yapmasın.)
+// Büyüyünce true yap; kartlar ve şehir grafiği otomatik geri gelir.
+const CANLI_ISTATISTIK = false
 
 const sayi = (n) => new Intl.NumberFormat('tr-TR').format(Math.max(0, Math.round(n || 0)))
 
@@ -16,6 +20,7 @@ export default function ReklamVer() {
   const [yuklendi, setYuklendi] = useState(false)
 
   useEffect(() => {
+    if (!CANLI_ISTATISTIK) { setYuklendi(true); return } // kapalıyken RPC çağrılmasın
     let iptal = false
     ;(async () => {
       try {
@@ -69,7 +74,8 @@ export default function ReklamVer() {
         </div>
       </section>
 
-      {/* CANLI İSTATİSTİK */}
+      {/* CANLI İSTATİSTİK — trafik büyüyünce yukarıdaki CANLI_ISTATISTIK'i true yap */}
+      {CANLI_ISTATISTIK && (
       <section>
         <h2 className="text-lg font-bold mb-1 flex items-center gap-2"><TrendingUp size={18} className="text-primary" /> Canlı rakamlarla neredeucuz</h2>
         <p className="text-sm text-base-content/50 mb-4">Gerçek ziyaretçi verisi — reklamın kaç kişiye ulaşacağını kendin gör.</p>
@@ -105,6 +111,7 @@ export default function ReklamVer() {
           </div>
         )}
       </section>
+      )}
 
       {/* NEDEN */}
       <section>
