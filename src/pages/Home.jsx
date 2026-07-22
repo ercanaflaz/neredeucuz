@@ -563,8 +563,8 @@ export default function Home({ onSelect }) {
             )}
           </div>
 
-          {/* Izgara: mobil tek sütun, masaüstü çok sütun */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+          {/* Izgara: görsel üstte dikey kartlar */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
             {gosterilen.map((u) => (
               <ProductCard key={u.id} urun={u} onClick={() => onSelect(u)} />
             ))}
