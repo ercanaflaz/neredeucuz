@@ -2,7 +2,7 @@ import { useState, useSyncExternalStore } from 'react'
 import { Bot, Send, Plus, Loader2, X, Store } from 'lucide-react'
 import { oneriAl } from '../lib/gemini'
 import { yerelOneri, urunOnerileri, ekstraOneriler } from '../lib/oneriler'
-import { subscribe, getSnapshot, topluEkle, yeniListeOlustur } from '../lib/akilliSepet'
+import { subscribe, getSnapshot, topluDegistir, yeniListeOlustur } from '../lib/akilliSepet'
 import { getAuth } from '../lib/auth'
 import { girisIste } from '../lib/girisKapisi'
 
@@ -70,7 +70,8 @@ export default function AiAsistan({ yeniListe = false }) {
       window.location.hash = '#/sepet/akilli'
       return
     }
-    topluEkle(items)
+    // Yeni öneri = listeyi YENİLE (mevcut listeye ekleme yapma)
+    topluDegistir(items)
     setEklendi(true); setSohbet(null); setSoru('')
   }
   // Beğenilmeyen ürünü öneri listesinden çıkar (eklemeden önce).
@@ -123,7 +124,7 @@ export default function AiAsistan({ yeniListe = false }) {
 
       {eklendi && (
         <div className="text-xs bg-success/10 text-success rounded-xl p-2.5">
-          Öneriler <b>Akıllı Sepet</b> listene eklendi. <a href="#/sepet" className="link">Listeye git →</a>
+          <b>Akıllı Sepet</b> listen yenilendi. <a href="#/sepet" className="link">Listeye git →</a>
         </div>
       )}
       {sohbet?.yok && (

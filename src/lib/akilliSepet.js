@@ -206,7 +206,7 @@ export function urunEkle(terim, adet) {
   kaydet(); emit()
 }
 
-// Toplu ekleme (serbest yazı / Gemini sonucu)
+// Toplu ekleme (serbest yazı / Gemini sonucu) — mevcut listeye EKLER
 export function topluEkle(kalemler) {
   kalemler.forEach((k) => {
     const t = duzenleTerim(k.terim)
@@ -216,6 +216,12 @@ export function topluEkle(kalemler) {
     else cache.liste.push({ id: yeniId(), terim: t, adet: k.adet || 1, birim: birimTespit(t), tercihMarka: k.marka || null, istenmeyenMarkalar: [], istenmeyenUrunler: [] })
   })
   kaydet(); emit()
+}
+
+// Yeni öneri/liste oluşturma — mevcut listeyi SIFIRDAN YENİLER (üstüne eklemez)
+export function topluDegistir(kalemler) {
+  cache.liste = []
+  topluEkle(kalemler)
 }
 
 // Bir kalemin birimini değiştir (adet ↔ kg ↔ lt).
