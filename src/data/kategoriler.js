@@ -6,15 +6,15 @@
 // g1/g2: kutu gradyanı (sabit hex) · renk: alt başlık çipi aksan tonu
 export const KATEGORILER = [
   {
-    ad: 'Meyve ve Sebze', emoji: '🥬', g1: '#22c55e', g2: '#15803d', renk: 'green',
+    ad: 'Meyve ve Sebze', kisa: 'Meyve/Sebze', emoji: '🥬', g1: '#22c55e', g2: '#15803d', renk: 'green',
     alt: ['Meyve', 'Sebze'],
   },
   {
-    ad: 'Et, Tavuk ve Balık', emoji: '🍖', g1: '#f43f5e', g2: '#be123c', renk: 'rose',
+    ad: 'Et, Tavuk ve Balık', kisa: 'Et/Tavuk', emoji: '🍖', g1: '#f43f5e', g2: '#be123c', renk: 'rose',
     alt: ['Kırmızı Et', 'Beyaz Et', 'Deniz Ürünleri', 'Şarküteri', 'Sakatat'],
   },
   {
-    ad: 'Süt Ürünleri ve Kahvaltılık', emoji: '🧀', g1: '#0ea5e9', g2: '#2563eb', renk: 'sky',
+    ad: 'Süt Ürünleri ve Kahvaltılık', kisa: 'Süt/Kahvaltı', emoji: '🧀', g1: '#0ea5e9', g2: '#2563eb', renk: 'sky',
     alt: [
       'Süt', 'Yumurta', 'Peynir', 'Yoğurt', 'Zeytin', 'Tereyağı ve Margarin',
       'Sürülebilir Ürünler ve Kahvaltılık Soslar', 'Helva Tahin ve Pekmez',
@@ -22,7 +22,7 @@ export const KATEGORILER = [
     ],
   },
   {
-    ad: 'Temel Gıda', emoji: '🌾', g1: '#f59e0b', g2: '#ea580c', renk: 'amber',
+    ad: 'Temel Gıda', kisa: 'Temel Gıda', emoji: '🌾', g1: '#f59e0b', g2: '#ea580c', renk: 'amber',
     alt: [
       'Ekmek ve Unlu Mamüller', 'Sıvı Yağlar', 'Bakliyat', 'Şeker ve Tatlandırıcılar',
       'Pasta Malzemeleri', 'Un ve İrmik', 'Mantı Makarna ve Erişte',
@@ -31,21 +31,21 @@ export const KATEGORILER = [
     ],
   },
   {
-    ad: 'İçecek', emoji: '🥤', g1: '#ec4899', g2: '#db2777', renk: 'pink',
+    ad: 'İçecek', kisa: 'İçecek', emoji: '🥤', g1: '#ec4899', g2: '#db2777', renk: 'pink',
     alt: [
       'Su', 'Meyve Suyu', 'Gazlı İçecekler', 'Gazsız İçecekler',
       'Ayran ve Kefir', 'Maden Suyu', 'Çay ve Bitki Çayları', 'Kahve',
     ],
   },
   {
-    ad: 'Atıştırmalık ve Tatlı', emoji: '🍫', g1: '#8b5cf6', g2: '#7c3aed', renk: 'violet',
+    ad: 'Atıştırmalık ve Tatlı', kisa: 'Atıştırmalık', emoji: '🍫', g1: '#8b5cf6', g2: '#7c3aed', renk: 'violet',
     alt: [
       'Çikolata', 'Gofret', 'Bisküvi ve Kraker', 'Kek', 'Cips',
       'Kuruyemiş ve Kuru Meyve', 'Sakız ve Şekerleme', 'Tatlılar', 'Dondurmalar',
     ],
   },
   {
-    ad: 'Temizlik ve Kişisel Bakım Ürünleri', emoji: '🧴', g1: '#14b8a6', g2: '#0d9488', renk: 'teal',
+    ad: 'Temizlik ve Kişisel Bakım Ürünleri', kisa: 'Temizlik/Bakım', emoji: '🧴', g1: '#14b8a6', g2: '#0d9488', renk: 'teal',
     alt: [
       'Bulaşık Temizlik Ürünleri', 'Çamaşır Temizlik Ürünleri', 'Genel Temizlik Ürünleri',
       'Mutfak Sarf Malzemeleri', 'Tuvalet Kağıdı', 'Kağıt Havlu', 'Kağıt Peçete ve Mendil',

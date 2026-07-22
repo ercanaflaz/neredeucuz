@@ -477,6 +477,54 @@ export default function Home({ onSelect }) {
         </button>
       )}
 
+      {/* Kategori modunda: kalıcı kategori şeridi — ana sayfaya dönmeden alt/ana kategori değiştir */}
+      {aktifArama?.tip === 'kategori' && (() => {
+        const anaKat = KATEGORILER.find((k) => k.ad === aktifArama.deger || k.alt.includes(aktifArama.deger))
+        return (
+          <section className="rounded-2xl border border-base-300 bg-base-100 p-2.5 space-y-2 -mt-2">
+            {/* Ana kategoriler */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-0.5 px-0.5">
+              {KATEGORILER.map((k) => {
+                const aktif = anaKat?.ad === k.ad
+                return (
+                  <button
+                    key={k.ad}
+                    onClick={() => kategoriAra(k.ad, true)}
+                    style={aktif ? { backgroundImage: `linear-gradient(135deg, ${k.g1}, ${k.g2})`, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,.28)' } : undefined}
+                    className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition ${aktif ? 'border-transparent' : 'bg-base-100 border-base-300 text-base-content/70 hover:bg-base-200'}`}
+                  >
+                    <span>{k.emoji}</span> {k.kisa || k.ad}
+                  </button>
+                )
+              })}
+            </div>
+            {/* Seçili ana kategorinin alt kategorileri */}
+            {anaKat && (
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5 border-t border-base-200 pt-2">
+                <button
+                  onClick={() => kategoriAra(anaKat.ad, true)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition ${aktifArama.deger === anaKat.ad ? 'bg-primary text-primary-content border-primary' : 'bg-base-100 border-base-300 text-base-content/70 hover:bg-base-200'}`}
+                >
+                  ⭐ Tümü
+                </button>
+                {anaKat.alt.map((a) => {
+                  const aktif = aktifArama.deger === a
+                  return (
+                    <button
+                      key={a}
+                      onClick={() => kategoriAra(a, false)}
+                      className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap transition ${aktif ? 'bg-primary text-primary-content border-primary' : (AKSAN[anaKat.renk]?.cip || 'bg-base-200 border-base-300 hover:bg-base-300')}`}
+                    >
+                      {a}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        )
+      })()}
+
       {/* Kategoriler (renkli kutular) + alt başlıklar + AI asistan + reklam */}
       {!aramaVar && (
         <>
