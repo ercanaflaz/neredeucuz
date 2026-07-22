@@ -8,8 +8,11 @@ import Favorites from './pages/Favorites'
 import Login from './pages/Login'
 import SepetSayfa from './pages/SepetSayfa'
 import Admin from './pages/Admin'
+import ReklamVer from './pages/ReklamVer'
 import LocationGate from './components/LocationGate'
 import ReklamRail from './components/ReklamRail'
+import ReklamCagrisi from './components/ReklamCagrisi'
+import AdSlot from './components/AdSlot'
 import HataSiniri from './components/HataSiniri'
 import GizlilikBildirimi from './components/GizlilikBildirimi'
 import { listeYukle as akilliListeYukle, listeleriYukle } from './lib/akilliSepet'
@@ -80,7 +83,10 @@ export default function App() {
   const sepetAdet = store.sepet.reduce((s, i) => s + (i.adet || 0), 0)
   const anaSayfa = !secili && route === '/'
   const adminSayfa = !secili && route.startsWith('/admin')
-  const genisSayfa = anaSayfa || adminSayfa
+  const reklamVerSayfa = !secili && route.startsWith('/reklam-ver')
+  const genisSayfa = anaSayfa || adminSayfa || reklamVerSayfa
+  // Alt reklam + çağrı şeridi: admin ve reklam-ver dışında her sayfada
+  const altReklam = !adminSayfa && !reklamVerSayfa
 
   const nav = [
     { key: 'ana', href: '#/', icon: HomeIcon, label: 'Ana Sayfa', active: !secili && route === '/' },
@@ -95,6 +101,7 @@ export default function App() {
 
   let sayfa
   if (secili) sayfa = <Product urun={secili} onBack={() => setSecili(null)} user={auth.user} />
+  else if (route.startsWith('/reklam-ver')) sayfa = <ReklamVer />
   else if (route.startsWith('/admin')) sayfa = <Admin />
   else if (route.startsWith('/sepet')) sayfa = <SepetSayfa user={auth.user} onSelect={setSecili} />
   else if (route.startsWith('/favoriler')) sayfa = <Favorites onSelect={setSecili} user={auth.user} />
@@ -145,6 +152,12 @@ export default function App() {
           <div className="flex-1 min-w-0">
             <div className={genisSayfa ? '' : 'max-w-2xl mx-auto'}>
               <HataSiniri key={route + (secili?.id || '')}>{sayfa}</HataSiniri>
+              {altReklam && (
+                <div className="mt-6 space-y-3 max-w-2xl mx-auto">
+                  <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_LIST} />
+                  <ReklamCagrisi />
+                </div>
+              )}
             </div>
           </div>
           {!adminSayfa && <ReklamRail konum="sag" className="hidden xl:block w-40 shrink-0" />}
