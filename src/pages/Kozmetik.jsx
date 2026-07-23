@@ -24,10 +24,15 @@ function MagazaEtiket({ magaza }) {
   return <span className="text-xs font-bold" style={{ color: magazaRenk(magaza) }}>{magaza}</span>
 }
 
-function Kart({ g }) {
+function Kart({ g, onClick }) {
   const karsilastirmali = g.magazaSayisi > 1
   return (
-    <div className="bg-base-100 rounded-2xl border border-base-300 hover:border-primary/40 hover:shadow-md overflow-hidden flex flex-col transition">
+    <div
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      className="bg-base-100 rounded-2xl border border-base-300 hover:border-primary/40 hover:shadow-md overflow-hidden flex flex-col transition cursor-pointer active:scale-[0.98]"
+    >
       <div className="relative aspect-square bg-white p-3">
         {g.gorsel ? (
           <img src={g.gorsel} alt="" loading="lazy" className="w-full h-full object-contain" />
@@ -86,6 +91,54 @@ function Kart({ g }) {
   )
 }
 
+// Ürün detay penceresi — büyük görsel + mağaza karşılaştırması (kendi mantığımız, dış link yok)
+function Detay({ g, onKapat }) {
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center p-3" onClick={onKapat}>
+      <div className="bg-base-100 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            {g.marka && <div className="text-xs text-base-content/50">{g.marka}</div>}
+            <div className="font-bold leading-tight">{g.ad}</div>
+          </div>
+          <button onClick={onKapat} className="btn btn-ghost btn-sm btn-circle shrink-0"><X size={18} /></button>
+        </div>
+
+        <div className="aspect-square bg-white rounded-xl border border-base-200 p-4 grid place-items-center">
+          {g.gorsel ? <img src={g.gorsel} alt="" className="w-full h-full object-contain" />
+            : <div className="flex flex-col items-center gap-1.5 opacity-70"><img src="/favicon.svg" alt="" className="w-12 h-12 rounded-xl" /><span className="text-xs font-extrabold"><span className="text-primary">nerede</span><span className="text-secondary">ucuz</span></span></div>}
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold text-base-content/60 mb-1.5">Fiyat karşılaştırması</div>
+          <div className="space-y-1.5">
+            {g.magazalar.map((m, i) => (
+              <div key={m.magaza} className={`flex items-center justify-between rounded-xl px-3 py-2 ${i === 0 ? 'bg-green-50 border-2 border-green-300' : 'bg-base-200/60 border border-base-300'}`}>
+                <span className="flex items-center gap-2">
+                  <MagazaEtiket magaza={m.magaza} />
+                  {i === 0 && <span className="text-[10px] font-bold bg-green-600 text-white rounded-full px-2 py-0.5">EN UCUZ</span>}
+                  <StokRozet stok={m.stok} />
+                </span>
+                <span className={`font-extrabold ${i === 0 ? 'text-green-700 text-lg' : 'text-base-content/50 line-through'}`}>{tl(m.fiyat)}</span>
+              </div>
+            ))}
+          </div>
+          {g.tasarruf > 0 && (
+            <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-secondary">
+              <TrendingDown size={16} /> {g.enUcuz.magaza}'da <b>{tl(g.tasarruf)}</b> daha ucuz
+            </div>
+          )}
+          {g.magazaSayisi === 1 && (
+            <div className="mt-2 text-xs text-base-content/50">Şimdilik sadece {g.enUcuz.magaza}'da bulundu. Diğer mağazalar eklendikçe karşılaştırma çıkacak.</div>
+          )}
+        </div>
+
+        <div className="text-[11px] text-base-content/40 pt-1 border-t border-base-200">Fiyat ve stok düzenli güncellenir; anlık farklılık olabilir.</div>
+      </div>
+    </div>
+  )
+}
+
 export default function Kozmetik() {
   const [q, setQ] = useState('')
   const [aktifQ, setAktifQ] = useState('')
@@ -95,6 +148,7 @@ export default function Kozmetik() {
   const [yukleniyor, setYukleniyor] = useState(true)
   const [sadeceKarsi, setSadeceKarsi] = useState(false)
   const [gosterilen, setGosterilen] = useState(SAYFA_ADET)
+  const [secili, setSecili] = useState(null)
 
   useEffect(() => { kozmetikKategoriler().then(setKategoriler) }, [])
 
@@ -162,7 +216,9 @@ export default function Kozmetik() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-            {suzulmus.slice(0, gosterilen).map((g) => <Kart key={g.anahtar} g={g} />)}
+            {suzulmus.slice(0, gosterilen).map((g) => (
+              <Kart key={g.anahtar} g={g} onClick={() => { setSecili(g); try { izle('kozmetik_urun', { baslik: g.ad }) } catch { /* yok */ } }} />
+            ))}
           </div>
           {gosterilen < suzulmus.length && (
             <button onClick={() => setGosterilen((n) => n + SAYFA_ADET)} className="btn btn-outline btn-block rounded-xl">
@@ -173,6 +229,8 @@ export default function Kozmetik() {
       )}
 
       <p className="text-[11px] text-base-content/40 text-center pt-2">Fiyat ve stok Gratis ve Rossmann'dan düzenli güncellenir; anlık farklılık olabilir. Aynı ürün, mağazaların ürün adına göre eşleştirilir.</p>
+
+      {secili && <Detay g={secili} onKapat={() => setSecili(null)} />}
     </div>
   )
 }
