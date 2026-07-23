@@ -23,6 +23,8 @@ body { -webkit-tap-highlight-color: transparent; }
 
 /* Alt navigasyon için güvenli alan (iPhone çentik) */
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+/* Üst bar için güvenli alan (iPhone çentik/durum çubuğu — logo & zil çakışmasın) */
+.safe-top { padding-top: env(safe-area-inset-top); }
 
 /* Barkod tarayıcı kutusu */
 #barkod-okuyucu video { border-radius: 1rem; object-fit: cover; }

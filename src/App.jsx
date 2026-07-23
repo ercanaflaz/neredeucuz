@@ -136,7 +136,7 @@ export default function App() {
       <BildirimDurtme />
 
       {/* ÜST BAR — masaüstünde menü linkleriyle */}
-      <header className="bg-base-100 border-b border-base-300 sticky top-0 z-20">
+      <header className="safe-top bg-base-100 border-b border-base-300 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 h-14 md:h-16 flex items-center gap-2">
           <a href="#/" onClick={() => { setSecili(null); window.dispatchEvent(new Event('ne:anasayfa')) }} className="flex items-center gap-2 font-bold text-lg md:text-xl">
             <img src="/favicon.svg" alt="neredeucuz logo" className="w-8 h-8 md:w-9 md:h-9 rounded-lg shadow-sm" />
