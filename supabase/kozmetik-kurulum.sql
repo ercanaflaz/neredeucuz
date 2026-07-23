@@ -14,12 +14,17 @@ create table if not exists kozmetik_urunler (
   gorsel      text,
   url         text not null unique,           -- upsert anahtarı (mağaza ürün linki)
   kategori    text,
+  eslesme     text,                           -- mağazalar arası eşleştirme anahtarı (marka+ad normalize)
   guncelleme  timestamptz not null default now()
 );
+
+-- Tablo zaten varsa eksik kolonu ekle (tekrar çalıştırmak güvenli)
+alter table kozmetik_urunler add column if not exists eslesme text;
 
 create index if not exists kozmetik_barkod_idx on kozmetik_urunler (barkod);
 create index if not exists kozmetik_magaza_idx on kozmetik_urunler (magaza);
 create index if not exists kozmetik_kategori_idx on kozmetik_urunler (kategori);
+create index if not exists kozmetik_eslesme_idx on kozmetik_urunler (eslesme);
 
 -- RLS: herkes okuyabilir, yazma sadece service key (RLS'i baypas eder) ile.
 alter table kozmetik_urunler enable row level security;

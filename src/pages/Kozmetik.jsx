@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Loader2, ExternalLink, Sparkles, Check, X } from 'lucide-react'
+import { Search, Loader2, Sparkles, Check, X } from 'lucide-react'
 import { tl } from '../lib/format'
 import { kozmetikYukle, kozmetikKategoriler } from '../lib/kozmetik'
 import { izle } from '../lib/izleme'
@@ -38,20 +38,14 @@ function Kart({ u }) {
           <StokRozet stok={u.stok} />
           <div className="flex items-end justify-between gap-1">
             <div>
-              <div className="text-[10px] text-base-content/40 leading-none">fiyat</div>
+              <div className="text-[10px] text-base-content/40 leading-none">en ucuz</div>
               <div className="text-lg font-extrabold text-primary leading-tight">{tl(u.fiyat)}</div>
             </div>
-            {u.kart_fiyat && <div className="text-[10px] text-base-content/50 text-right leading-none pb-0.5">kart<br /><b>{tl(u.kart_fiyat)}</b></div>}
+            <div className="text-right">
+              <div className="text-[10px] text-base-content/40 leading-none">nerede</div>
+              <div className="text-xs font-bold text-fuchsia-700 leading-tight">{u.magaza}</div>
+            </div>
           </div>
-          <a
-            href={u.url}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-            onClick={() => { try { izle('kozmetik_tik', { baslik: u.ad, detay: { magaza: u.magaza } }) } catch { /* yok */ } }}
-            className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-fuchsia-600 hover:bg-fuchsia-700 active:scale-[0.98] rounded-xl py-2 transition"
-          >
-            Mağazaya Git <ExternalLink size={15} />
-          </a>
         </div>
       </div>
     </div>

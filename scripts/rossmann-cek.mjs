@@ -1,22 +1,16 @@
-// Gratis kozmetik kazıyıcı — PROTOTİP.
-// Gratis ürün sayfaları JSON-LD (schema.org) ile fiyat + stok + marka + barkod + link yayınlıyor.
-// Bu script: arama/kategori sayfasından ürün linklerini toplar, her ürünün JSON-LD'sini
-// okuyup normalize eder ve (SUPABASE_URL + SUPABASE_SERVICE_KEY varsa) Supabase'e yazar.
+// Rossmann kozmetik kazıyıcı — DENEME.
+// Rossmann (Magento) ürün sayfaları JSON-LD ile fiyat + stok + marka yayınlıyor.
+// DİKKAT: Rossmann bot'a kısıtlı sayfa verebiliyor (WebFetch'te ürün verisi gelmedi).
+// GitHub Actions'ta düz fetch çalışırsa harika; çalışmazsa (0 ürün) Playwright'e geçeriz.
 //
-// NOT: Gratis datacenter IP'lerini kısıtlayabilir. WebFetch ile sorunsuz çekildi, GitHub
-// Actions çıkışı da açıktır; engel çıkarsa residential proxy (HTTPS_PROXY env) eklenebilir.
-//
-// Çalıştırma:
-//   node scripts/gratis-cek.mjs                 # varsayılan kategoriler, sadece ekrana yazar
-//   SUPABASE_URL=... SUPABASE_SERVICE_KEY=... node scripts/gratis-cek.mjs   # Supabase'e yazar
+// Fiyat Rossmann'da doğrudan TL (Gratis'teki gibi kuruş DEĞİL).
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15'
 const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
 
-// Hangi kelimeleri/kategorileri tarayacağız (Gratis /search?q=…)
-const KELIMELER = (process.env.KELIMELER || 'maskara,ruj,fondöten,şampuan,parfüm,cilt kremi,oje,far,göz kalemi,güneş kremi')
+const KATEGORILER = (process.env.ROSSMANN_KATEGORI || 'makyaj,cilt-bakimi,sac-bakim,parfum-deodorant,kisisel-bakim')
   .split(',').map((s) => s.trim()).filter(Boolean)
-const URUN_LIMIT = Number(process.env.URUN_LIMIT || 12) // kelime başına ürün
+const URUN_LIMIT = Number(process.env.URUN_LIMIT || 20)
 
 async function getir(url) {
   const r = await fetch(url, {
@@ -32,9 +26,9 @@ async function getir(url) {
 
 function urunLinkleri(html) {
   const set = new Set()
-  const re = /href="(\/[^"]*-p-\d+)"/g
+  const re = /href="(\/[a-z0-9-]+-p-[a-z0-9]+)"/gi
   let m
-  while ((m = re.exec(html))) set.add('https://www.gratis.com' + m[1])
+  while ((m = re.exec(html))) set.add('https://www.rossmann.com.tr' + m[1])
   return [...set]
 }
 
@@ -55,23 +49,8 @@ function urunBul(ldler) {
   return null
 }
 
-function barkodBul(p, html) {
-  const g = p?.gtin13 || p?.gtin || p?.gtin12 || p?.mpn
-  if (g && /^\d{8,14}$/.test(String(g))) return String(g)
-  const m = html.match(/(?:barkod|barcode)["'>:\s]{1,6}(\d{8,14})/i)
-  return m ? m[1] : null
-}
-
-function fiyatNormal(v) {
-  let p = Number(v)
-  if (!Number.isFinite(p)) return null
-  // Gratis JSON-LD fiyatı kuruş (tam sayı) cinsinden: 74900 = 749,00 TL · 9000 = 90,00 TL
-  if (Number.isInteger(p) && p >= 100) p = p / 100
-  return Math.round(p * 100) / 100
-}
-
 // Mağazalar arası eşleştirme anahtarı: marka + ad, boyut/birim/noktalama atılmış.
-function eslesmeAnahtar(marka, ad) {
+export function eslesmeAnahtar(marka, ad) {
   let s = `${marka || ''} ${ad || ''}`.toLocaleLowerCase('tr')
   s = s.replace(/\d+([.,]\d+)?\s*(ml|lt|l|gr|g|kg|cl|adet|x|li|lu|lı|'?li|'?lu)\b/gi, ' ')
   s = s.replace(/[^0-9a-zçğıöşü ]/gi, ' ').replace(/\s+/g, ' ').trim()
@@ -83,15 +62,14 @@ async function urunCek(url) {
   const p = urunBul(jsonLdler(html))
   if (!p) return null
   const offer = Array.isArray(p.offers) ? p.offers[0] : p.offers
-  // Gratis Kart (üye) fiyatı gövdede olabilir — en iyi çaba
-  const kartM = html.match(/gratis\s*kart[^0-9]{0,40}(\d{1,4}[.,]\d{2})/i)
+  const fiyat = Number(offer?.price)
   return {
-    magaza: 'Gratis',
+    magaza: 'Rossmann',
     ad: p.name || null,
     marka: (p.brand && (p.brand.name || p.brand)) || null,
-    barkod: barkodBul(p, html),
-    fiyat: fiyatNormal(offer?.price),
-    kart_fiyat: kartM ? Number(kartM[1].replace('.', '').replace(',', '.')) : null,
+    barkod: null, // Rossmann JSON-LD gerçek EAN vermiyor (gtin = kendi kodu)
+    fiyat: Number.isFinite(fiyat) ? Math.round(fiyat * 100) / 100 : null,
+    kart_fiyat: null,
     stok: /InStock/i.test(offer?.availability || '') ? 'var' : (offer?.availability ? 'yok' : null),
     gorsel: Array.isArray(p.image) ? p.image[0] : p.image || null,
     url,
@@ -104,10 +82,7 @@ async function supabaseYaz(kayitlar) {
   if (!URL || !KEY || !kayitlar.length) return { yazildi: 0, atlandi: !URL || !KEY }
   const r = await fetch(`${URL.replace(/\/$/, '')}/rest/v1/kozmetik_urunler?on_conflict=url`, {
     method: 'POST',
-    headers: {
-      apikey: KEY, authorization: `Bearer ${KEY}`,
-      'content-type': 'application/json', prefer: 'resolution=merge-duplicates,return=minimal',
-    },
+    headers: { apikey: KEY, authorization: `Bearer ${KEY}`, 'content-type': 'application/json', prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify(kayitlar.map((k) => ({ ...k, guncelleme: new Date().toISOString() }))),
   })
   if (!r.ok) throw new Error(`Supabase ${r.status}: ${(await r.text()).slice(0, 200)}`)
@@ -116,24 +91,20 @@ async function supabaseYaz(kayitlar) {
 
 async function main() {
   const hepsi = []
-  for (const kelime of KELIMELER) {
-    const aramaUrl = `https://www.gratis.com/search?q=${encodeURIComponent(kelime)}`
+  for (const kat of KATEGORILER) {
+    const url = `https://www.rossmann.com.tr/${kat}`
     let links = []
-    try { links = urunLinkleri(await getir(aramaUrl)).slice(0, URUN_LIMIT) } catch (e) { console.log(`[${kelime}] arama hatası:`, e.message); continue }
-    console.log(`[${kelime}] ${links.length} ürün linki`)
+    try { links = urunLinkleri(await getir(url)).slice(0, URUN_LIMIT) } catch (e) { console.log(`[${kat}] liste hatası:`, e.message); continue }
+    console.log(`[${kat}] ${links.length} ürün linki`)
     for (const u of links) {
-      try {
-        const urun = await urunCek(u)
-        if (urun && urun.ad && urun.fiyat) { urun.kategori = kelime; hepsi.push(urun) }
-      } catch (e) { /* tek ürün hatası — geç */ }
+      try { const urun = await urunCek(u); if (urun && urun.ad && urun.fiyat) { urun.kategori = kat; hepsi.push(urun) } } catch { /* geç */ }
       await BEKLE(350)
     }
   }
-  // Aynı ürün farklı kelimelerde çıkabilir — url'e göre tekilleştir
   const tekil = [...new Map(hepsi.map((u) => [u.url, u])).values()]
   console.log(`\nToplam ${tekil.length} tekil ürün.`)
-  tekil.slice(0, 15).forEach((s) => console.log(`• ${s.ad} — ${s.marka} | ${s.fiyat} TL | stok:${s.stok} | barkod:${s.barkod}`))
-
+  tekil.slice(0, 15).forEach((s) => console.log(`• ${s.ad} — ${s.marka} | ${s.fiyat} TL | stok:${s.stok}`))
+  if (!tekil.length) console.log('UYARI: 0 ürün — Rossmann düz fetch\'i büyük ihtimalle bot ile engelliyor. Playwright gerekebilir.')
   try {
     const sonuc = await supabaseYaz(tekil)
     if (sonuc.atlandi) console.log('\n(Supabase env yok — sadece ekrana yazıldı.)')
