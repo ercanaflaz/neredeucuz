@@ -51,8 +51,17 @@ async function supabaseYaz(kayitlar) {
   return { yazildi: kayitlar.length }
 }
 
+// Residential proxy (GitHub secret'larından). Ülke = Türkiye seçilmeli.
+//   PROXY_SERVER: ör. 'http://gw.dataimpulse.com:823'  (sadece host:port, http:// ön ekli)
+//   PROXY_USER / PROXY_PASS: proxy kullanıcı adı/şifre (ülke hedefi genelde kullanıcı adında)
+const proxyOpt = process.env.PROXY_SERVER
+  ? { proxy: { server: process.env.PROXY_SERVER, username: process.env.PROXY_USER || undefined, password: process.env.PROXY_PASS || undefined } }
+  : {}
+
 async function main() {
-  const browser = await chromium.launch({ headless: true })
+  if (proxyOpt.proxy) console.log(`Proxy kullanılıyor: ${proxyOpt.proxy.server}`)
+  else console.log('Proxy YOK — Rossmann datacenter IP\'sini blokladığı için 0 ürün beklenir. PROXY_SERVER ekleyin.')
+  const browser = await chromium.launch({ headless: true, ...proxyOpt })
   const context = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
   const page = await context.newPage()
   const hepsi = []
