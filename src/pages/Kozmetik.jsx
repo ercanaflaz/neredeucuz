@@ -5,7 +5,20 @@ import { kozmetikGrupluYukle, kozmetikKategoriler } from '../lib/kozmetik'
 import { izle } from '../lib/izleme'
 
 const SAYFA_ADET = 40
-const baslikYap = (s) => (s ? s.charAt(0).toLocaleUpperCase('tr') + s.slice(1) : s)
+// "sac-bakim" → "Sac Bakim", "parfüm & deodorant" → "Parfüm & Deodorant"
+const baslikYap = (s) => (s || '').split(/[\s-]+/).filter(Boolean).map((w) => w.charAt(0).toLocaleUpperCase('tr') + w.slice(1)).join(' ')
+
+// Kategori çipi renk paleti (Tailwind purge için tam sınıf adları) — sırayla dağıtılır
+const CIP_RENK = [
+  { pas: 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100', akt: 'bg-pink-600 text-white border-pink-600' },
+  { pas: 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100', akt: 'bg-violet-600 text-white border-violet-600' },
+  { pas: 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100', akt: 'bg-sky-600 text-white border-sky-600' },
+  { pas: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100', akt: 'bg-emerald-600 text-white border-emerald-600' },
+  { pas: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100', akt: 'bg-amber-500 text-white border-amber-500' },
+  { pas: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100', akt: 'bg-rose-600 text-white border-rose-600' },
+  { pas: 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100', akt: 'bg-teal-600 text-white border-teal-600' },
+  { pas: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100', akt: 'bg-orange-600 text-white border-orange-600' },
+]
 
 // Mağaza rengi (kozmetik zincirleri)
 const MAGAZA_RENK = {
@@ -186,15 +199,28 @@ export default function Kozmetik() {
         </form>
       </div>
 
-      {/* Kategori çipleri */}
+      {/* Kategori çipleri — satır satır (kaydırmasız), renkli, mobil dostu */}
       {kategoriler.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-          <button onClick={() => kategoriSec(null)} className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium border whitespace-nowrap transition ${!kategori ? 'bg-fuchsia-600 text-white border-fuchsia-600' : 'bg-base-100 border-base-300 text-base-content/70 hover:bg-base-200'}`}>Tümü</button>
-          {kategoriler.map((k) => (
-            <button key={k.kategori} onClick={() => kategoriSec(k.kategori)} className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-medium border whitespace-nowrap capitalize transition ${kategori === k.kategori ? 'bg-fuchsia-600 text-white border-fuchsia-600' : 'bg-base-100 border-base-300 text-base-content/70 hover:bg-base-200'}`}>
-              {baslikYap(k.kategori)} <span className="opacity-50">{k.adet}</span>
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => kategoriSec(null)}
+            className={`px-3.5 py-2 rounded-full text-sm font-semibold border transition active:scale-95 ${!kategori ? 'bg-fuchsia-600 text-white border-fuchsia-600' : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100'}`}
+          >
+            Tümü
+          </button>
+          {kategoriler.map((k, i) => {
+            const renk = CIP_RENK[i % CIP_RENK.length]
+            const aktif = kategori === k.kategori
+            return (
+              <button
+                key={k.kategori}
+                onClick={() => kategoriSec(k.kategori)}
+                className={`px-3.5 py-2 rounded-full text-sm font-medium border transition active:scale-95 ${aktif ? renk.akt : renk.pas}`}
+              >
+                {baslikYap(k.kategori)} <span className="opacity-60 font-normal">{k.adet}</span>
+              </button>
+            )
+          })}
         </div>
       )}
 
