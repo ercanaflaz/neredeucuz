@@ -3,7 +3,7 @@
 // proxy (Türkiye) üzerinden geçeriz. Sadece JSON çektiğimiz için proxy trafiği çok az.
 // Fiyat Shopify'da doğrudan TL (kuruş değil). Stok = variant.available (true/false).
 
-import { ProxyAgent } from 'undici'
+import { ProxyAgent, fetch as pfetch } from 'undici'
 
 const BASE = 'https://www.eveshop.com.tr/products.json'
 const SAYFA_LIMIT = 250
@@ -14,11 +14,15 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const ISTEK_BASLIK = { accept: 'application/json', 'user-agent': UA, 'accept-language': 'tr-TR,tr;q=0.9' }
 
 // Residential proxy (Cloudflare'i geçmek için). PROXY_SERVER=http://host:port + PROXY_USER/PASS
+// Şifre Proxy-Authorization başlığıyla (token) gönderilir — URL userinfo bazı undici sürümlerinde yok sayılıyor.
 let DISPATCHER
 if (process.env.PROXY_SERVER) {
   const host = process.env.PROXY_SERVER.replace(/^https?:\/\//, '')
-  const auth = process.env.PROXY_USER ? `${encodeURIComponent(process.env.PROXY_USER)}:${encodeURIComponent(process.env.PROXY_PASS || '')}@` : ''
-  DISPATCHER = new ProxyAgent(`http://${auth}${host}`)
+  const opts = { uri: `http://${host}` }
+  if (process.env.PROXY_USER) {
+    opts.token = 'Basic ' + Buffer.from(`${process.env.PROXY_USER}:${process.env.PROXY_PASS || ''}`).toString('base64')
+  }
+  DISPATCHER = new ProxyAgent(opts)
 }
 
 function eslesmeAnahtar(marka, ad) {
@@ -90,7 +94,8 @@ async function main() {
   for (let sayfa = 1; sayfa <= MAX_SAYFA; sayfa++) {
     let urunler = []
     try {
-      const r = await fetch(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`, { headers: ISTEK_BASLIK, dispatcher: DISPATCHER })
+      // undici'nin kendi fetch'i — dispatcher (proxy) burada kesin uygulanır (global fetch'te uygulanmıyor)
+      const r = await pfetch(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`, { headers: ISTEK_BASLIK, dispatcher: DISPATCHER })
       if (!r.ok) { console.log(`sayfa ${sayfa}: ${r.status}`); break }
       urunler = (await r.json()).products || []
     } catch (e) { console.log(`sayfa ${sayfa} hata:`, e.message); break }
