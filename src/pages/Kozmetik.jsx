@@ -11,6 +11,7 @@ const baslikYap = (s) => (s ? s.charAt(0).toLocaleUpperCase('tr') + s.slice(1) :
 const MAGAZA_RENK = {
   Gratis: '#E6007E',
   Rossmann: '#C8102E',
+  Eve: '#0D9488',
 }
 const magazaRenk = (m) => MAGAZA_RENK[m] || '#7c3aed'
 
