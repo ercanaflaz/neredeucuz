@@ -16,7 +16,7 @@ const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
 // Hangi kelimeleri/kategorileri tarayacağız (Gratis /search?q=…)
 const KELIMELER = (process.env.KELIMELER || 'maskara,ruj,fondöten,şampuan,parfüm,cilt kremi,oje,far,göz kalemi,güneş kremi')
   .split(',').map((s) => s.trim()).filter(Boolean)
-const URUN_LIMIT = Number(process.env.URUN_LIMIT || 12) // kelime başına ürün
+const URUN_LIMIT = Number(process.env.URUN_LIMIT || 40) // kelime başına ürün
 
 async function getir(url) {
   const r = await fetch(url, {
