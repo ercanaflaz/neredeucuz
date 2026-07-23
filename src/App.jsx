@@ -51,10 +51,39 @@ function useHash() {
   return hash
 }
 
+// iOS'ta env(safe-area-inset-bottom) ilk açılışta 0 gelip sonra 34px'e "atlıyor"
+// ve alt menü yukarı doğru büyüyor. Değeri JS ile ölçüp sabitleriz → tutarlı kalır.
+function useGuvenliAlan() {
+  const [inset, setInset] = useState({ ust: 0, alt: 0 })
+  useEffect(() => {
+    const p = document.createElement('div')
+    p.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);'
+    document.body.appendChild(p)
+    const olc = () => {
+      const cs = getComputedStyle(p)
+      const ust = parseFloat(cs.paddingTop) || 0
+      const alt = parseFloat(cs.paddingBottom) || 0
+      setInset((o) => (o.ust === ust && o.alt === alt ? o : { ust, alt }))
+    }
+    const r1 = requestAnimationFrame(() => { olc(); requestAnimationFrame(olc) })
+    const t = setTimeout(olc, 300)
+    window.addEventListener('resize', olc)
+    window.addEventListener('orientationchange', olc)
+    return () => {
+      cancelAnimationFrame(r1); clearTimeout(t)
+      window.removeEventListener('resize', olc)
+      window.removeEventListener('orientationchange', olc)
+      p.remove()
+    }
+  }, [])
+  return inset
+}
+
 export default function App() {
   const auth = useSyncExternalStore(subscribeAuth, getAuth)
   const store = useSyncExternalStore(subscribe, getSnapshot)
   const bild = useSyncExternalStore(subscribeBildirim, getBildirim)
+  const guvenli = useGuvenliAlan()
   const hash = useHash()
   const [secili, setSecili] = useState(null)
 
@@ -136,7 +165,7 @@ export default function App() {
       <BildirimDurtme />
 
       {/* ÜST BAR — masaüstünde menü linkleriyle */}
-      <header className="safe-top bg-base-100 border-b border-base-300 sticky top-0 z-20">
+      <header style={{ paddingTop: guvenli.ust }} className="bg-base-100 border-b border-base-300 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 h-14 md:h-16 flex items-center gap-2">
           <a href="#/" onClick={() => { setSecili(null); window.dispatchEvent(new Event('ne:anasayfa')) }} className="flex items-center gap-2 font-bold text-lg md:text-xl">
             <img src="/favicon.svg" alt="neredeucuz logo" className="w-8 h-8 md:w-9 md:h-9 rounded-lg shadow-sm" />
@@ -188,7 +217,7 @@ export default function App() {
       </header>
 
       {/* İÇERİK — masaüstünde solda/sağda reklam rayları */}
-      <main className="flex-1 w-full max-w-[1500px] mx-auto px-4 pt-4 pb-24 md:pb-10">
+      <main className="flex-1 w-full max-w-[1500px] mx-auto px-4 pt-4 pb-28 md:pb-10">
         <div className="flex gap-5 justify-center">
           {!yanReklamGizle && <ReklamRail konum="sol" className="hidden xl:block w-40 shrink-0" />}
           <div className="flex-1 min-w-0">
@@ -207,7 +236,7 @@ export default function App() {
       </main>
 
       {/* ALT SEKME — sadece mobil */}
-      <nav className="fixed bottom-0 inset-x-0 bg-base-100 border-t border-base-300 safe-bottom z-20 md:hidden">
+      <nav style={{ paddingBottom: guvenli.alt }} className="fixed bottom-0 inset-x-0 bg-base-100 border-t border-base-300 z-20 md:hidden">
         <div className="max-w-2xl mx-auto grid" style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0,1fr))` }}>
           {nav.map((n) => (
             <a
