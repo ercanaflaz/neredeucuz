@@ -77,6 +77,15 @@ export default function Home({ onSelect }) {
     return () => { iptal = true }
   }, [])
 
+  // Kategori açılınca alt-başlık paneli görünür olsun (özellikle mobilde,
+  // kutular alt alta dizildiği için panel aşağıda kalıyordu).
+  const altPanelRef = useRef(null)
+  useEffect(() => {
+    if (acikKat && altPanelRef.current) {
+      altPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [acikKat])
+
   // Sonuç başlıklarından alt tür kelimelerini çıkar (marka + arama kelimeleri hariç).
   function turleriHesapla(list, kelime) {
     const STOP = new Set(['gr', 'kg', 'ml', 'lt', 'adet', 'paket', 'gram', 've', 'ile', 'light', 'için', 'yağlı', 'yagli'])
@@ -561,7 +570,7 @@ export default function Home({ onSelect }) {
               const k = KATEGORILER.find((x) => x.ad === acikKat)
               if (!k) return null
               return (
-                <div className={`rounded-2xl border-2 bg-base-100 p-3.5 ${AKSAN[k.renk]?.border || 'border-base-300'}`}>
+                <div ref={altPanelRef} className={`scroll-mt-20 rounded-2xl border-2 bg-base-100 p-3.5 ${AKSAN[k.renk]?.border || 'border-base-300'}`}>
                   <div className="flex items-center gap-2 mb-2.5">
                     <span className="text-lg">{k.emoji}</span>
                     <span className="font-semibold text-sm">{k.ad}</span>
