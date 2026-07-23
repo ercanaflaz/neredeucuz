@@ -1,6 +1,9 @@
 // Eve (eveshop.com.tr) kozmetik kazıyıcı — Shopify /products.json API.
-// Bot koruması yok, proxy gerekmez, sunucudan doğrudan çekilir. Tüm katalog sayfalı gelir.
+// Eve Cloudflare arkasında: datacenter/GitHub IP'sini 403'lüyor. Bu yüzden residential
+// proxy (Türkiye) üzerinden geçeriz. Sadece JSON çektiğimiz için proxy trafiği çok az.
 // Fiyat Shopify'da doğrudan TL (kuruş değil). Stok = variant.available (true/false).
+
+import { ProxyAgent } from 'undici'
 
 const BASE = 'https://www.eveshop.com.tr/products.json'
 const SAYFA_LIMIT = 250
@@ -9,6 +12,14 @@ const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
 // UA olmadan Shopify/Cloudflare datacenter isteğini 403'lüyor — tarayıcı UA'sı şart.
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 const ISTEK_BASLIK = { accept: 'application/json', 'user-agent': UA, 'accept-language': 'tr-TR,tr;q=0.9' }
+
+// Residential proxy (Cloudflare'i geçmek için). PROXY_SERVER=http://host:port + PROXY_USER/PASS
+let DISPATCHER
+if (process.env.PROXY_SERVER) {
+  const host = process.env.PROXY_SERVER.replace(/^https?:\/\//, '')
+  const auth = process.env.PROXY_USER ? `${encodeURIComponent(process.env.PROXY_USER)}:${encodeURIComponent(process.env.PROXY_PASS || '')}@` : ''
+  DISPATCHER = new ProxyAgent(`http://${auth}${host}`)
+}
 
 function eslesmeAnahtar(marka, ad) {
   let s = `${marka || ''} ${ad || ''}`.toLocaleLowerCase('tr')
@@ -73,11 +84,13 @@ async function supabaseYaz(kayitlar) {
 }
 
 async function main() {
+  if (DISPATCHER) console.log(`Proxy kullanılıyor: ${process.env.PROXY_SERVER}`)
+  else console.log('Proxy YOK — Eve Cloudflare arkasında, datacenter IP 403 alır. PROXY_SERVER ekleyin.')
   const hepsi = []
   for (let sayfa = 1; sayfa <= MAX_SAYFA; sayfa++) {
     let urunler = []
     try {
-      const r = await fetch(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`, { headers: ISTEK_BASLIK })
+      const r = await fetch(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`, { headers: ISTEK_BASLIK, dispatcher: DISPATCHER })
       if (!r.ok) { console.log(`sayfa ${sayfa}: ${r.status}`); break }
       urunler = (await r.json()).products || []
     } catch (e) { console.log(`sayfa ${sayfa} hata:`, e.message); break }
