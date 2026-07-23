@@ -1,12 +1,13 @@
-// Rossmann kozmetik kazıyıcı — PLAYWRIGHT (gerçek tarayıcı).
-// Rossmann düz fetch'i bot ile engelliyor (403). Bu yüzden headless Chromium ile
-// gerçek tarayıcı gibi gezip ürün sayfalarındaki JSON-LD'yi (fiyat + stok) okuruz.
+// Rossmann kozmetik kazıyıcı — PLAYWRIGHT + PROXY.
+// Rossmann düz fetch'i ve datacenter IP'lerini bot ile engelliyor (403). Bu yüzden
+// headless Chromium + residential proxy ile gerçek Türk kullanıcı gibi geziyoruz.
 // Fiyat Rossmann'da doğrudan TL (kuruş DEĞİL).
 //
-// GitHub Actions'ta önce Playwright kurulmalı:
-//   npm install playwright && npx playwright install --with-deps chromium
-//
-// Yine de 403 gelirse engel IP tabanlıdır → residential proxy gerekir.
+// GitHub Actions'ta: npm install playwright && npx playwright install --with-deps chromium
+// Proxy secret'ları (Türkiye seçili DataImpulse residential):
+//   PROXY_SERVER = http://gw.dataimpulse.com:823
+//   PROXY_USER   = plan Login'i (ör. 8la2934...)
+//   PROXY_PASS   = plan Password'ı
 
 import { chromium } from 'playwright'
 
@@ -15,6 +16,11 @@ const KATEGORILER = (process.env.ROSSMANN_KATEGORI || 'makyaj,cilt-bakimi,sac-ba
   .split(',').map((s) => s.trim()).filter(Boolean)
 const URUN_LIMIT = Number(process.env.URUN_LIMIT || 20)
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+
+// Residential proxy (secret'lardan). PROXY_SERVER yoksa proxy'siz çalışır (o zaman 403 beklenir).
+const proxyOpt = process.env.PROXY_SERVER
+  ? { proxy: { server: process.env.PROXY_SERVER, username: process.env.PROXY_USER || undefined, password: process.env.PROXY_PASS || undefined } }
+  : {}
 
 function urunBul(ldler) {
   for (const l of ldler) {
@@ -51,16 +57,10 @@ async function supabaseYaz(kayitlar) {
   return { yazildi: kayitlar.length }
 }
 
-// Residential proxy (GitHub secret'larından). Ülke = Türkiye seçilmeli.
-//   PROXY_SERVER: ör. 'http://gw.dataimpulse.com:823'  (sadece host:port, http:// ön ekli)
-//   PROXY_USER / PROXY_PASS: proxy kullanıcı adı/şifre (ülke hedefi genelde kullanıcı adında)
-const proxyOpt = process.env.PROXY_SERVER
-  ? { proxy: { server: process.env.PROXY_SERVER, username: process.env.PROXY_USER || undefined, password: process.env.PROXY_PASS || undefined } }
-  : {}
-
 async function main() {
   if (proxyOpt.proxy) console.log(`Proxy kullanılıyor: ${proxyOpt.proxy.server}`)
-  else console.log('Proxy YOK — Rossmann datacenter IP\'sini blokladığı için 0 ürün beklenir. PROXY_SERVER ekleyin.')
+  else console.log('Proxy YOK — PROXY_SERVER secret ekli değil. Rossmann 403 verir.')
+
   const browser = await chromium.launch({ headless: true, ...proxyOpt })
   const context = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
   const page = await context.newPage()
@@ -71,8 +71,8 @@ async function main() {
       const listeUrl = `https://www.rossmann.com.tr/${kat}`
       let linkler = []
       try {
-        const resp = await page.goto(listeUrl, { waitUntil: 'domcontentloaded', timeout: 45000 })
-        if (resp && resp.status() === 403) { console.log(`[${kat}] 403 (tarayıcıda da engel — IP tabanlı olabilir)`); continue }
+        const resp = await page.goto(listeUrl, { waitUntil: 'domcontentloaded', timeout: 60000 })
+        if (resp && resp.status() === 403) { console.log(`[${kat}] 403 (proxy IP'si de engelli olabilir)`); continue }
         await BEKLE(1500)
         linkler = await page.$$eval('a[href*="-p-"]', (as) => [...new Set(as.map((a) => a.href).filter((h) => /-p-[a-z0-9]+/i.test(h)))])
         linkler = linkler.slice(0, URUN_LIMIT)
@@ -81,7 +81,7 @@ async function main() {
 
       for (const u of linkler) {
         try {
-          await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 45000 })
+          await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 60000 })
           await BEKLE(600)
           const p = urunBul(await jsonLdOku(page))
           if (!p) continue
@@ -107,7 +107,7 @@ async function main() {
   const tekil = [...new Map(hepsi.map((u) => [u.url, u])).values()]
   console.log(`\nToplam ${tekil.length} tekil ürün.`)
   tekil.slice(0, 15).forEach((s) => console.log(`• ${s.ad} — ${s.marka} | ${s.fiyat} TL | stok:${s.stok}`))
-  if (!tekil.length) console.log('UYARI: 0 ürün — headless tarayıcıda da engellendi. Engel IP tabanlı; residential proxy gerekir.')
+  if (!tekil.length) console.log('UYARI: 0 ürün — proxy ile de gelmedi. Proxy ülkesi (Türkiye) ve secret\'ları kontrol et.')
   try {
     const sonuc = await supabaseYaz(tekil)
     if (sonuc.atlandi) console.log('\n(Supabase env yok — sadece ekrana yazıldı.)')
