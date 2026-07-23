@@ -63,6 +63,13 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true, ...proxyOpt })
   const context = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
+  // Görsel/CSS/font/video indirme — bize sadece HTML+JSON-LD lazım. Hem hızlanır
+  // hem de proxy trafiği (5 GB) çok daha az harcanır.
+  await context.route('**/*', (route) => {
+    const t = route.request().resourceType()
+    if (t === 'image' || t === 'media' || t === 'font' || t === 'stylesheet') return route.abort()
+    return route.continue()
+  })
   const page = await context.newPage()
   const hepsi = []
 
@@ -73,7 +80,7 @@ async function main() {
       try {
         const resp = await page.goto(listeUrl, { waitUntil: 'domcontentloaded', timeout: 60000 })
         if (resp && resp.status() === 403) { console.log(`[${kat}] 403 (proxy IP'si de engelli olabilir)`); continue }
-        await BEKLE(1500)
+        await BEKLE(400)
         linkler = await page.$$eval('a[href*="-p-"]', (as) => [...new Set(as.map((a) => a.href).filter((h) => /-p-[a-z0-9]+/i.test(h)))])
         linkler = linkler.slice(0, URUN_LIMIT)
       } catch (e) { console.log(`[${kat}] liste hatası:`, e.message); continue }
@@ -82,7 +89,6 @@ async function main() {
       for (const u of linkler) {
         try {
           await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 60000 })
-          await BEKLE(600)
           const p = urunBul(await jsonLdOku(page))
           if (!p) continue
           const offer = Array.isArray(p.offers) ? p.offers[0] : p.offers
@@ -97,7 +103,7 @@ async function main() {
             url: u, kategori: kat, eslesme: eslesmeAnahtar(marka || '', p.name),
           })
         } catch { /* tek ürün — geç */ }
-        await BEKLE(300)
+        await BEKLE(120)
       }
     }
   } finally {
