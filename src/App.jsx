@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useEffect, useState, useRef } from 'react'
-import { Home as HomeIcon, Search, Heart, User, ShoppingCart, Shield, Bell, Newspaper } from 'lucide-react'
+import { Home as HomeIcon, Search, Heart, User, ShoppingCart, Shield, Bell, Newspaper, Sparkles } from 'lucide-react'
 import { subscribeAuth, getAuth } from './lib/auth'
 import { subscribe, getSnapshot, favorileriYukle, alarmlariYukle, sepetiYukle, konumBaslat } from './lib/store'
 import Home from './pages/Home'
@@ -11,6 +11,7 @@ import Admin from './pages/Admin'
 import ReklamVer from './pages/ReklamVer'
 import Bildirimler from './pages/Bildirimler'
 import Brosurler from './pages/Brosurler'
+import Kozmetik from './pages/Kozmetik'
 import LocationGate from './components/LocationGate'
 import ReklamRail from './components/ReklamRail'
 import ReklamCagrisi from './components/ReklamCagrisi'
@@ -138,6 +139,7 @@ export default function App() {
   const nav = [
     { key: 'ana', href: '#/', icon: HomeIcon, label: 'Ana Sayfa', active: !secili && route === '/' },
     { key: 'brosur', href: '#/brosurler', icon: Newspaper, label: 'Broşürler', active: !secili && route.startsWith('/brosurler') },
+    { key: 'kozmetik', href: '#/kozmetik', icon: Sparkles, label: 'Kozmetik', active: !secili && route.startsWith('/kozmetik') },
     { key: 'sepet', href: '#/sepet', icon: ShoppingCart, label: 'Sepet', badge: sepetAdet, active: !secili && route.startsWith('/sepet') },
     { key: 'fav', href: '#/favoriler', icon: Heart, label: 'Favoriler', active: !secili && route.startsWith('/favoriler') },
     { key: 'giris', href: '#/giris', icon: User, label: auth.user ? 'Hesap' : 'Giriş', active: !secili && route.startsWith('/giris') },
@@ -153,6 +155,7 @@ export default function App() {
   else if (route.startsWith('/sepet')) sayfa = <SepetSayfa user={auth.user} onSelect={setSecili} />
   else if (route.startsWith('/favoriler')) sayfa = <Favorites onSelect={setSecili} user={auth.user} />
   else if (route.startsWith('/brosurler')) sayfa = <Brosurler />
+  else if (route.startsWith('/kozmetik')) sayfa = <Kozmetik />
   else if (route.startsWith('/bildirimler')) sayfa = <Bildirimler user={auth.user} />
   else if (route.startsWith('/giris')) sayfa = <Login user={auth.user} />
   else sayfa = <Home onSelect={setSecili} />

@@ -65,7 +65,8 @@ function barkodBul(p, html) {
 function fiyatNormal(v) {
   let p = Number(v)
   if (!Number.isFinite(p)) return null
-  if (p > 5000) p = p / 100 // Gratis JSON-LD fiyatı kuruş cinsinden (74900 = 749,00)
+  // Gratis JSON-LD fiyatı kuruş (tam sayı) cinsinden: 74900 = 749,00 TL · 9000 = 90,00 TL
+  if (Number.isInteger(p) && p >= 100) p = p / 100
   return Math.round(p * 100) / 100
 }
 
