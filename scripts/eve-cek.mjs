@@ -6,6 +6,9 @@ const BASE = 'https://www.eveshop.com.tr/products.json'
 const SAYFA_LIMIT = 250
 const MAX_SAYFA = Number(process.env.EVE_MAX_SAYFA || 60) // güvenlik tavanı
 const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
+// UA olmadan Shopify/Cloudflare datacenter isteğini 403'lüyor — tarayıcı UA'sı şart.
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+const ISTEK_BASLIK = { accept: 'application/json', 'user-agent': UA, 'accept-language': 'tr-TR,tr;q=0.9' }
 
 function eslesmeAnahtar(marka, ad) {
   let s = `${marka || ''} ${ad || ''}`.toLocaleLowerCase('tr')
@@ -74,7 +77,7 @@ async function main() {
   for (let sayfa = 1; sayfa <= MAX_SAYFA; sayfa++) {
     let urunler = []
     try {
-      const r = await fetch(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`, { headers: { accept: 'application/json' } })
+      const r = await fetch(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`, { headers: ISTEK_BASLIK })
       if (!r.ok) { console.log(`sayfa ${sayfa}: ${r.status}`); break }
       urunler = (await r.json()).products || []
     } catch (e) { console.log(`sayfa ${sayfa} hata:`, e.message); break }
