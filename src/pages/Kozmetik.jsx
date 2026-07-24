@@ -171,6 +171,40 @@ function IskeletKart() {
   )
 }
 
+// Şık, markalı yükleme ekranı — parlayan logo + animasyonlu noktalar + kayan çubuk + iskeletler.
+function YuklemeEkrani() {
+  return (
+    <div className="space-y-5">
+      <style>{`@keyframes ndKay{0%{transform:translateX(-120%)}100%{transform:translateX(360%)}}`}</style>
+      <div className="flex flex-col items-center justify-center gap-4 py-10">
+        <div className="relative">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-fuchsia-500 to-purple-600 blur-2xl opacity-40 animate-pulse" />
+          <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-fuchsia-600 to-purple-700 grid place-items-center shadow-xl">
+            <img src="/favicon.svg" alt="" className="w-11 h-11 drop-shadow" />
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-xl font-extrabold tracking-tight"><span className="text-primary">nerede</span><span className="text-secondary">ucuz</span></div>
+          <div className="mt-1 text-sm text-base-content/60 inline-flex items-center gap-1">
+            Kozmetik fiyatları karşılaştırılıyor
+            <span className="inline-flex gap-0.5 ml-0.5">
+              <span className="w-1 h-1 rounded-full bg-secondary animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1 h-1 rounded-full bg-secondary animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1 h-1 rounded-full bg-secondary animate-bounce" />
+            </span>
+          </div>
+        </div>
+        <div className="w-52 h-1.5 rounded-full bg-base-200 overflow-hidden">
+          <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-fuchsia-500 to-purple-600" style={{ animation: 'ndKay 1.1s ease-in-out infinite' }} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+        {Array.from({ length: 8 }).map((_, i) => <IskeletKart key={i} />)}
+      </div>
+    </div>
+  )
+}
+
 export default function Kozmetik() {
   const [tumGruplar, setTumGruplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -306,14 +340,7 @@ export default function Kozmetik() {
       )}
 
       {yukleniyor ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-center gap-2 text-sm text-base-content/60 py-2">
-            <Loader2 className="animate-spin text-primary" size={18} /> Ürünler yükleniyor, lütfen bekleyin…
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-            {Array.from({ length: 8 }).map((_, i) => <IskeletKart key={i} />)}
-          </div>
-        </div>
+        <YuklemeEkrani />
       ) : suzulmus.length === 0 ? (
         <div className="text-center text-sm text-base-content/50 py-16">Ürün bulunamadı. Farklı bir kelime ya da kategori dene.</div>
       ) : (
