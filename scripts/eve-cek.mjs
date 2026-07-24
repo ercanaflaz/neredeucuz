@@ -60,7 +60,8 @@ function urunCoz(p) {
     marka: p.vendor || null,
     barkod: (p.variants?.[0]?.barcode && /^\d{8,14}$/.test(String(p.variants[0].barcode))) ? String(p.variants[0].barcode) : null,
     fiyat: Math.round(fiyat * 100) / 100,
-    kart_fiyat: null,
+    // kart_fiyat KASITLI olarak yazılmıyor: eve-kart-cek.mjs'in doldurduğu Eve Kart
+    // fiyatı toplu çekimde silinmesin (merge-duplicates yalnız verilen kolonları günceller).
     stok: stokVar ? 'var' : 'yok',
     gorsel: p.images?.[0]?.src || null,
     url: `https://www.eveshop.com.tr/products/${p.handle}`,

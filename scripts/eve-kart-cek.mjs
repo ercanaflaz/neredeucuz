@@ -127,9 +127,11 @@ async function main() {
   // Taze context = yeni proxy IP (rotating gateway). Bloklanan IP'yi bırakmak için kullanılır.
   const yeniSayfa = async () => {
     const ctx = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
+    // Kart fiyatı sunucu HTML'inde geliyor (JS gerekmez). SADECE ana HTML belgesini
+    // yükle, geri kalan her şeyi (script, xhr, görsel, css, font) blokla → sayfa çok
+    // hafifler, proxy üzerinden timeout / ERR_CONNECTION_CLOSED büyük ölçüde biter.
     await ctx.route('**/*', (route) => {
-      const t = route.request().resourceType()
-      if (t === 'image' || t === 'media' || t === 'font' || t === 'stylesheet') return route.abort()
+      if (route.request().resourceType() !== 'document') return route.abort()
       return route.continue()
     })
     return { ctx, page: await ctx.newPage() }
@@ -145,7 +147,7 @@ async function main() {
       let tamam = false
       for (let deneme = 0; deneme < 3 && !tamam; deneme++) {
         try {
-          const resp = await page.goto(s.url, { waitUntil: 'domcontentloaded', timeout: 90000 })
+          const resp = await page.goto(s.url, { waitUntil: 'domcontentloaded', timeout: 45000 })
           const durum = resp ? resp.status() : 0
           if (durum === 403 || durum === 429) {
             ard403++
