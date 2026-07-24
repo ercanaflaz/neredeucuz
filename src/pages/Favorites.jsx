@@ -57,26 +57,29 @@ export default function Favorites({ onSelect, user }) {
 
       <section>
         <h2 className="text-sm font-semibold text-base-content/60 mb-2 flex items-center gap-1.5">
-          <Bell size={16} /> Fiyat alarmları
+          <Bell size={16} /> Fiyat takibi
         </h2>
         {!store.alarmlar.length && (
-          <p className="text-sm text-base-content/50">Aktif alarm yok. Ürün ekranından fiyat alarmı kurabilirsin.</p>
+          <p className="text-sm text-base-content/50">Henüz takip ettiğin ürün yok. Bir ürünü açıp <b>“Fiyat düşünce haber ver”</b>e dokun; fiyat düşünce sana bildirim gelir.</p>
         )}
         <div className="space-y-2">
-          {store.alarmlar.map((a) => (
-            <div key={a.id} className="bg-base-100 rounded-2xl p-3 border border-base-300 flex gap-3 items-center">
-              <div className="flex-1 min-w-0">
-                <div className="font-medium leading-tight line-clamp-1">{a.baslik}</div>
-                <div className="text-xs text-base-content/50">
-                  Hedef: <span className="text-secondary font-medium">{tl(a.hedef_fiyat)}</span>
-                  {a.son_fiyat != null && <> · son: {tl(a.son_fiyat)}</>}
+          {store.alarmlar.map((a) => {
+            const dustu = a.son_fiyat != null && Number(a.son_fiyat) < Number(a.hedef_fiyat)
+            return (
+              <div key={a.id} className="bg-base-100 rounded-2xl p-3 border border-base-300 flex gap-3 items-center">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium leading-tight line-clamp-1">{a.baslik}</div>
+                  <div className="text-xs text-base-content/50">
+                    🔔 <span className="text-secondary font-medium">{tl(a.hedef_fiyat)}</span> altına inince haber vereceğiz
+                    {a.son_fiyat != null && <> · güncel {tl(a.son_fiyat)}{dustu && <span className="text-green-600 font-semibold"> ↓ düştü!</span>}</>}
+                  </div>
                 </div>
+                <button onClick={() => alarmSil(a.id)} className="btn btn-ghost btn-sm btn-circle text-base-content/40" title="Takibi kaldır">
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <button onClick={() => alarmSil(a.id)} className="btn btn-ghost btn-sm btn-circle text-base-content/40">
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
     </div>
