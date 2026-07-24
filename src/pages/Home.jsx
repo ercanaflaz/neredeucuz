@@ -1,6 +1,7 @@
 import { useState, useMemo, useSyncExternalStore, useEffect, useRef, lazy, Suspense } from 'react'
 import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft, RefreshCw, LayoutGrid, ChevronDown } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
+import PopulerVitrin from '../components/PopulerVitrin'
 import AdSlot from '../components/AdSlot'
 import MarketBadge from '../components/MarketBadge'
 import { KATEGORILER } from '../data/kategoriler'
@@ -742,12 +743,25 @@ export default function Home({ onSelect }) {
         </div>
       )}
 
-      {/* EN ÇOK ARANANLAR — gerçek arama verisinden dinamik */}
+      {/* POPÜLER ÜRÜNLER VİTRİNİ — en çok aranan ürünlerin en ucuz hali */}
+      {!aramaVar && populer.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingDown size={18} className="text-primary" />
+            <h2 className="font-bold">Popüler ürünler — en ucuz nerede</h2>
+          </div>
+          <p className="text-xs text-base-content/50 -mt-1">En çok aranan ürünler, bölgendeki en ucuz marketiyle. Dokun, tüm fiyatları gör.</p>
+          <PopulerVitrin terimler={populer} konum={store.konum} onSelect={onSelect} adet={8} />
+          <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_LIST} className="mt-1" />
+        </section>
+      )}
+
+      {/* EN ÇOK ARANANLAR — hızlı arama kısayolları (çipler) */}
       {!aramaVar && populer.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Flame size={18} className="text-secondary" />
-            <h2 className="font-bold">En çok aranan ürünler</h2>
+            <h2 className="font-bold">En çok aranan aramalar</h2>
           </div>
           <p className="text-xs text-base-content/50 -mt-1">Kullanıcıların en çok aradığı ürünler — dokun, en ucuz marketi anında gör.</p>
           <div className="flex flex-wrap gap-2">
