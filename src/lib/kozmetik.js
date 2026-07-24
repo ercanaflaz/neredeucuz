@@ -4,7 +4,11 @@ import { supabase } from './supabase'
 // marka + ürün adındaki anlamlı kelimeler. Sayılar KORUNUR (renk no / boy) ki
 // "Pastel Oje 405" ≠ "Pastel Oje 393" olsun (yanlış eşleşme azalır).
 const ES_STOP = new Set(['ve', 'ile', 'için', 'icin', 'yeni', 'set', 'paket', 'adet', 'ml', 'lt', 'l', 'gr', 'g', 'kg', 'cl', 'x', 'li', 'lu', 'lı', 'no', 'kadın', 'kadin', 'erkek', 'bayan', 'ea', 'the'])
-const norm = (v) => (v || '').toLocaleLowerCase('tr').replace(/[^0-9a-zçğıöşü ]/gi, ' ').replace(/\s+/g, ' ').trim()
+// Türkçe harfleri ASCII'ye katlar. KRİTİK: Eve markaları BÜYÜK HARF ("MAYBELLINE")
+// saklıyor; toLocaleLowerCase('tr') I→ı çevirince "maybellıne" olur ve Gratis'in
+// "maybelline"i ile eşleşmez. Bu yüzden önce ASCII'ye katlayıp sonra küçültüyoruz.
+const TR_KATLA = { ı: 'i', İ: 'i', i̇: 'i', ç: 'c', Ç: 'c', ğ: 'g', Ğ: 'g', ö: 'o', Ö: 'o', ş: 's', Ş: 's', ü: 'u', Ü: 'u', â: 'a', î: 'i', û: 'u' }
+const norm = (v) => (v || '').replace(/[ıİi̇çÇğĞöÖşŞüÜâîû]/g, (c) => TR_KATLA[c] || c).toLowerCase().replace(/[^0-9a-z ]/gi, ' ').replace(/\s+/g, ' ').trim()
 function anahtarUret(marka, ad) {
   const m = norm(marka)
   const markaTok = new Set(m.split(' ').filter(Boolean))
