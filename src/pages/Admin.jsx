@@ -309,13 +309,13 @@ export default function Admin() {
 
         {v && (
           <>
-            {bolum === 'genel' && <GenelBakis metrik={metrik} seri={seri} oturumlar={oturumlar} olaylar={olaylar} v={v} />}
+            {bolum === 'genel' && <GenelBakis metrik={metrik} seri={seri} oturumlar={oturumlar} olaylar={olaylar} v={v} esik={esik} />}
             {bolum === 'canli' && <Canli olaylarTum={v.olaylar} email={email} />}
             {bolum === 'ziyaretci' && <Ziyaretciler oturumlar={oturumlar} email={email} />}
             {bolum === 'kaynak' && <Kaynaklar oturumlar={oturumlar} />}
             {bolum === 'cografya' && <Cografya oturumlar={oturumlar} />}
             {bolum === 'goruntuleme' && <Goruntuleme olaylar={olaylar} v={v} />}
-            {bolum === 'arama' && <Aramalar olaylar={olaylar} v={v} />}
+            {bolum === 'arama' && <Aramalar olaylar={olaylar} v={v} esik={esik} />}
             {bolum === 'uye' && <Kullanicilar v={v} />}
             {bolum === 'bildirim' && <BildirimYonetimi />}
             {bolum === 'icerik' && <div className="space-y-4"><BrosurYonetimi /><ReklamYonetimi /><VideoYonetimi /></div>}
@@ -328,11 +328,11 @@ export default function Admin() {
 }
 
 // ======================= BÖLÜMLER =======================
-function GenelBakis({ metrik, seri, oturumlar, olaylar, v }) {
+function GenelBakis({ metrik, seri, oturumlar, olaylar, v, esik }) {
   const kaynakDagilim = useMemo(() => enCok(oturumlar, 'kaynak', 6), [oturumlar])
   const topSayfa = useMemo(() => enCok(olaylar.filter((o) => o.tur === 'sayfa'), 'baslik', 6), [olaylar])
   const topUrun = useMemo(() => enCok(olaylar.filter((o) => o.tur === 'urun'), 'baslik', 6), [olaylar])
-  const topArama = useMemo(() => enCok(v.aramalar, 'terim', 6), [v])
+  const topArama = useMemo(() => enCok((v.aramalar || []).filter((a) => new Date(a.olusturuldu).getTime() >= esik), 'terim', 6), [v, esik])
   const sonOturumlar = oturumlar.slice(0, 6)
   return (
     <div className="space-y-4">
@@ -587,17 +587,19 @@ function Goruntuleme({ olaylar, v }) {
   )
 }
 
-function Aramalar({ olaylar, v }) {
-  const topArama = useMemo(() => enCok(v.aramalar, 'terim', 20), [v])
+function Aramalar({ olaylar, v, esik }) {
+  // Arama istatistikleri de üstteki tarih aralığına (Bugün / 7 gün / 30 gün / Tümü) uymalı.
+  const aramalar = useMemo(() => (v.aramalar || []).filter((a) => new Date(a.olusturuldu).getTime() >= esik), [v, esik])
+  const topArama = useMemo(() => enCok(aramalar, 'terim', 20), [aramalar])
   const barkodlar = useMemo(() => olaylar.filter((o) => o.tur === 'barkod'), [olaylar])
   const listeler = useMemo(() => olaylar.filter((o) => o.tur === 'liste'), [olaylar])
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MiniStat ikon={<SearchIcon size={16} />} n={v.aramalar.length} l="Toplam arama" />
+        <MiniStat ikon={<SearchIcon size={16} />} n={aramalar.length} l="Toplam arama" />
         <MiniStat ikon={<ScanLine size={16} />} n={barkodlar.length} l="Barkod okutma" />
         <MiniStat ikon={<ListChecks size={16} />} n={listeler.length} l="Liste oluşturma" />
-        <MiniStat ikon={<Package size={16} />} n={new Set(v.aramalar.map((a) => a.terim)).size} l="Farklı terim" />
+        <MiniStat ikon={<Package size={16} />} n={new Set(aramalar.map((a) => a.terim)).size} l="Farklı terim" />
       </div>
       <Kart baslik="En çok aranan ürünler" ikon={<SearchIcon size={16} />}>
         {topArama.length ? <BarListe veri={topArama} /> : <Bos metin="Henüz arama kaydı yok." />}
