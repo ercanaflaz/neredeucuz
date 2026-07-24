@@ -131,7 +131,8 @@ export default function App() {
   const bildirimAktif = !secili && route.startsWith('/bildirimler')
   const adminSayfa = !secili && route.startsWith('/admin')
   const reklamVerSayfa = !secili && route.startsWith('/reklam-ver')
-  const genisSayfa = anaSayfa || adminSayfa || reklamVerSayfa
+  const kozmetikSayfa = !secili && route.startsWith('/kozmetik')
+  const genisSayfa = anaSayfa || adminSayfa || reklamVerSayfa || kozmetikSayfa
   // Alt reklam + çağrı şeridi: admin, reklam-ver ve bildirimler dışında (bildirimler sade kalsın)
   const altReklam = !adminSayfa && !reklamVerSayfa && !bildirimAktif
   const yanReklamGizle = adminSayfa || bildirimAktif
