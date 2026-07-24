@@ -3,27 +3,50 @@ import { Loader2 } from 'lucide-react'
 import ProductCard from './ProductCard'
 import { searchByKeyword, normalize } from '../lib/marketfiyati'
 
-// Popüler ürün vitrini: en çok aranan terimlerin her biri için bölgedeki EN UCUZ
-// ürünü bulup kart olarak gösterir (terim başına 1 temsilci ürün). marketfiyati
-// indirim/kampanya verisi vermediği için "kampanya" değil, gerçek arama verisine
+// Popüler ürün vitrini: en çok aranan terimlerden bir temsilci ürün gösterir.
+// - Her yüklemede terimler karıştırılır ve her terim için ADAYLAR arasından rastgele
+//   biri seçilir → sayfa yenilendikçe farklı ürünler gelir.
+// - Temsilci seçimi bir PUANA göre: çok markette olan (mainstream) + görselli öne çıkar;
+//   "çilekli süt / bıldırcın yumurta" gibi uç/özel varyantlar geri düşer.
+// marketfiyati indirim/kampanya vermediği için "kampanya" değil, gerçek arama verisine
 // dayalı popüler ürünler + en ucuz marketleri gösterilir.
+
+const OZEL = /çilekli|çikolatalı|kakaolu|muzlu|aromalı|vanilyalı|ballı|meyveli|buzlu|instant|ice ?tea|soğuk çay|light|laktozsuz|bıldırcın|glutensiz|şekersiz|dev boy|mini\b|sachet|hazır/i
+
+function puan(u) {
+  return (u.marketCount || 0) * 2 + (u.imageUrl ? 1 : 0) - (OZEL.test(u.title || '') ? 4 : 0)
+}
+
+function karistir(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 export default function PopulerVitrin({ terimler, konum, onSelect, adet = 8 }) {
   const [urunler, setUrunler] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
   const sonAnahtar = useRef(null)
 
-  const secilen = (terimler || []).slice(0, adet)
+  const tumTerim = terimler || []
+  // anahtar TÜM terimlerden (kararlı) — her render'da değişmesin diye karıştırma effect içinde.
   const anahtar =
-    secilen.map((t) => t.terim).join('|') +
+    tumTerim.map((t) => t.terim).join('|') +
     '@' + (konum ? `${Number(konum.latitude).toFixed(2)},${Number(konum.longitude).toFixed(2)},${konum.distance || ''}` : 'yok')
 
   useEffect(() => {
-    if (!secilen.length) { setUrunler([]); setYukleniyor(false); return }
+    if (!tumTerim.length) { setUrunler([]); setYukleniyor(false); return }
     if (sonAnahtar.current === anahtar) return
     sonAnahtar.current = anahtar
     let iptal = false
     setYukleniyor(true)
     setUrunler([])
+
+    // Her yüklemede farklı: terimleri karıştır, ilk `adet` tanesini al.
+    const secilen = karistir(tumTerim).slice(0, adet)
 
     // Takılan bir istek tüm vitrini kilitlemesin — 8 sn'de null'a düş.
     const zamanAsimli = (p, ms) => Promise.race([
@@ -36,12 +59,12 @@ export default function PopulerVitrin({ terimler, konum, onSelect, adet = 8 }) {
         const yanit = await zamanAsimli(searchByKeyword(t.terim, konum), 8000)
         if (!yanit) return null
         const liste = normalize(yanit, konum)
-        // En alakalı ilk sonuçlar içinden EN ÇOK MARKETTE bulunan ürünü seç: hem temsili
-        // (mainstream) hem de "en ucuz nerede" karşılaştırması anlamlı olur.
-        const uygun = liste.filter((u) => u.minPrice != null && u.marketCount > 0).slice(0, 12)
-        if (!uygun.length) return null
-        uygun.sort((a, b) => b.marketCount - a.marketCount) // stable sort → eşitlikte alaka sırası korunur
-        return { ...uygun[0], _terim: t.terim }
+        const havuz = liste.filter((u) => u.minPrice != null && u.marketCount > 0)
+        if (!havuz.length) return null
+        // En alakalı ilk 12 → puana göre en iyi 5 → aralarından RASTGELE biri (çeşitlilik).
+        const enIyi = havuz.slice(0, 12).sort((a, b) => puan(b) - puan(a)).slice(0, 5)
+        const sec = enIyi[Math.floor(Math.random() * enIyi.length)]
+        return { ...sec, _terim: t.terim }
       } catch { return null }
     }
 
@@ -53,8 +76,8 @@ export default function PopulerVitrin({ terimler, konum, onSelect, adet = 8 }) {
         const cikti = await Promise.all(secilen.slice(i, i + BATCH).map(birUrun))
         if (iptal) return
         for (const u of cikti) { if (u && !gorulen.has(u.id)) { gorulen.add(u.id); birikmis.push(u) } }
-        setUrunler([...birikmis])   // kartları geldikçe göster
-        setYukleniyor(false)        // ilk parti gelince spinner'ı kaldır
+        setUrunler([...birikmis]) // kartları geldikçe göster
+        setYukleniyor(false)      // ilk parti gelince spinner'ı kaldır
       }
       if (!iptal) setYukleniyor(false)
     })()
