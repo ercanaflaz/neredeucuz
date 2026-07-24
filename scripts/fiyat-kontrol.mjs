@@ -102,7 +102,9 @@ async function main() {
     await BEKLE(350)
     if (!fiyat) { await sbPatch('fiyat_alarmlari?id=eq.' + a.id, { son_kontrol: simdi }); continue }
 
-    if (fiyat.min <= Number(a.hedef_fiyat)) {
+    // Hedef = alarm kurulduğu andaki fiyat. Bu fiyatın ALTINA inince tetiklenir
+    // ("indirim olunca haber ver"). Eşitlik tetiklemez, yoksa hemen bildirim giderdi.
+    if (fiyat.min < Number(a.hedef_fiyat)) {
       tetiklenen++
       const aboneler = await sbGet('push_abonelikleri?kullanici_id=eq.' + a.kullanici_id + '&select=endpoint,abonelik')
       const mesaj = {

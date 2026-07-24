@@ -7,18 +7,17 @@ import AdSlot from '../components/AdSlot'
 import MarketBadge from '../components/MarketBadge'
 import ListeyeEkle from '../components/ListeyeEkle'
 import {
-  subscribe, getSnapshot, favoriMi, favoriEkle, favoriSil, alarmKur,
+  subscribe, getSnapshot, favoriMi, favoriEkle, favoriSil, alarmKur, alarmSil,
   sepeteEkle, sepetteMi,
 } from '../lib/store'
 import { girisIste } from '../lib/girisKapisi'
+import { pushAc, pushAboneMi } from '../lib/push'
 
 export default function Product({ urun: urunProp, onBack, user }) {
   const store = useSyncExternalStore(subscribe, getSnapshot)
   const [urun, setUrun] = useState(urunProp)
   const [zenginlestiriliyor, setZenginlestiriliyor] = useState(false)
   const [mesaj, setMesaj] = useState(null)
-  const [alarmAcik, setAlarmAcik] = useState(false)
-  const [hedef, setHedef] = useState(urunProp.minPrice ? String(urunProp.minPrice) : '')
 
   // Yeni ürün açılınca yerel durumu sıfırla
   useEffect(() => { setUrun(urunProp) }, [urunProp])
@@ -42,6 +41,7 @@ export default function Product({ urun: urunProp, onBack, user }) {
 
   const fav = favoriMi(urun.id)
   const sepette = sepetteMi(urun.id)
+  const alarm = store.alarmlar.find((a) => a.urun_id === urun.id) || null
   const tasarruf = tasarrufYuzde(urun.minPrice, urun.maxPrice)
 
   async function sepeteAt() {
@@ -62,12 +62,20 @@ export default function Product({ urun: urunProp, onBack, user }) {
     }
   }
 
-  async function alarmKaydet() {
-    if (!user) { girisIste('fiyat alarmı kurmak'); return }
+  // Tek dokunuş: fiyat düşünce haber ver. Hedef = ŞU ANKİ en ucuz fiyat; bu fiyatın
+  // ALTINA inince (fiyat-kontrol.mjs) otomatik push + uygulama içi bildirim gider.
+  async function alarmToggle() {
+    if (!user) { girisIste('fiyat düşünce haber almak'); return }
+    if (alarm) {
+      try { await alarmSil(alarm.id); setMesaj('Fiyat takibi kapatıldı.') } catch (e) { setMesaj(e.message) }
+      return
+    }
+    if (!urun.minPrice) { setMesaj('Bu ürün için güncel fiyat bulunamadı.'); return }
     try {
-      await alarmKur(urun, Number(hedef))
-      setAlarmAcik(false)
-      setMesaj('Fiyat alarmı kuruldu.')
+      // Bildirim gidebilsin diye push izni yoksa iste (izin verilmezse alarm yine kaydolur).
+      try { if (!(await pushAboneMi())) await pushAc({ force: false }) } catch { /* izin yok — sorun değil */ }
+      await alarmKur(urun, urun.minPrice)
+      setMesaj(`Tamam! Fiyat ${tl(urun.minPrice)} altına inince haber vereceğiz.`)
     } catch (e) {
       setMesaj(e.message)
     }
@@ -112,26 +120,16 @@ export default function Product({ urun: urunProp, onBack, user }) {
         <button onClick={favToggle} className={`btn flex-1 ${fav ? 'btn-primary' : 'btn-outline'}`}>
           <Heart size={18} className={fav ? 'fill-current' : ''} /> {fav ? 'Favoride' : 'Favorile'}
         </button>
-        <button onClick={() => { if (!user) { girisIste('fiyat alarmı kurmak'); return } setAlarmAcik((v) => !v) }} className="btn btn-outline flex-1">
-          <Bell size={18} /> Fiyat alarmı
+        <button onClick={alarmToggle} className={`btn flex-1 h-auto min-h-12 whitespace-normal leading-tight text-center ${alarm ? 'btn-secondary' : 'btn-outline'}`}>
+          <Bell size={18} className={alarm ? 'fill-current' : ''} /> {alarm ? 'Haber vereceğiz' : 'Fiyat düşünce haber ver'}
         </button>
       </div>
+      {alarm && (
+        <p className="text-[11px] text-base-content/50 -mt-1 px-1">🔔 Fiyat <b>{tl(alarm.hedef_fiyat)}</b> altına inince otomatik bildirim göndereceğiz. Kapatmak için butona tekrar dokun.</p>
+      )}
 
       {/* Kendi listene ekle */}
       <ListeyeEkle urun={urun} variant="full" className="w-full" />
-
-      {alarmAcik && (
-        <div className="bg-base-100 rounded-2xl p-4 border border-base-300 space-y-3">
-          <p className="text-sm">Bu ürün belirlediğin fiyatın altına inince haber verelim:</p>
-          <div className="flex gap-2">
-            <label className="input input-bordered flex items-center gap-2 flex-1">
-              <input type="number" step="0.01" value={hedef} onChange={(e) => setHedef(e.target.value)} className="grow" placeholder="hedef fiyat" />
-              <span className="text-base-content/50">₺</span>
-            </label>
-            <button onClick={alarmKaydet} className="btn btn-secondary">Kur</button>
-          </div>
-        </div>
-      )}
 
       {mesaj && <div className="alert text-sm">{mesaj}</div>}
 
