@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Loader2, Sparkles, Check, X, TrendingDown } from 'lucide-react'
+import { Search, Loader2, Sparkles, Check, X, TrendingDown, ChevronDown } from 'lucide-react'
 import { tl } from '../lib/format'
-import { kozmetikTumGruplar, STANDART_KATEGORILER } from '../lib/kozmetik'
+import { kozmetikTumGruplar } from '../lib/kozmetik'
 import { izle } from '../lib/izleme'
 
 const SAYFA_ADET = 40
@@ -13,18 +13,30 @@ const magazaRenk = (m) => MAGAZA_RENK[m] || '#7c3aed'
 // Kart indirimi olan (üyelik) mağazalar — fiyatları "kartsız" olarak gösteriyoruz
 const KART_MAGAZA = new Set(['Gratis', 'Rossmann'])
 
-// Kategori çipi renk paleti (Tailwind purge için tam sınıf adları)
-const CIP_RENK = [
-  { pas: 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100', akt: 'bg-pink-600 text-white border-pink-600' },
-  { pas: 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100', akt: 'bg-violet-600 text-white border-violet-600' },
-  { pas: 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100', akt: 'bg-sky-600 text-white border-sky-600' },
-  { pas: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100', akt: 'bg-emerald-600 text-white border-emerald-600' },
-  { pas: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100', akt: 'bg-amber-500 text-white border-amber-500' },
-  { pas: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100', akt: 'bg-rose-600 text-white border-rose-600' },
-  { pas: 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100', akt: 'bg-teal-600 text-white border-teal-600' },
-  { pas: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100', akt: 'bg-orange-600 text-white border-orange-600' },
-  { pas: 'bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100', akt: 'bg-cyan-600 text-white border-cyan-600' },
+// Kategori kutuları (ana sayfa tarzı: renkli kutu + alt başlıklar). ad = STANDART_KATEGORILER ile birebir.
+// alt = ürün adında aranan alt-kelimeler (ikinci seviye filtre).
+const KOZ_KAT = [
+  { ad: 'Makyaj', emoji: '💄', g1: '#ec4899', g2: '#db2777', renk: 'pink', alt: ['Maskara', 'Ruj', 'Far', 'Fondöten', 'Kapatıcı', 'Allık', 'Pudra', 'Oje', 'Eyeliner', 'Kaş'] },
+  { ad: 'Cilt Bakımı', emoji: '🧴', g1: '#0ea5e9', g2: '#2563eb', renk: 'sky', alt: ['Nemlendirici', 'Serum', 'Tonik', 'Güneş', 'Maske', 'Temizleme', 'Göz Kremi', 'Peeling'] },
+  { ad: 'Saç Bakım', emoji: '💇', g1: '#8b5cf6', g2: '#7c3aed', renk: 'violet', alt: ['Şampuan', 'Saç Kremi', 'Saç Maskesi', 'Saç Boyası', 'Jöle', 'Sprey'] },
+  { ad: 'Parfüm & Deodorant', emoji: '🌸', g1: '#f43f5e', g2: '#be123c', renk: 'rose', alt: ['Parfüm', 'Deodorant', 'Kolonya', 'Body Mist', 'Roll'] },
+  { ad: 'Ağız & Diş', emoji: '🦷', g1: '#14b8a6', g2: '#0d9488', renk: 'teal', alt: ['Diş Macunu', 'Diş Fırçası', 'Gargara'] },
+  { ad: 'Duş & Vücut', emoji: '🛁', g1: '#06b6d4', g2: '#0891b2', renk: 'cyan', alt: ['Duş Jeli', 'Sabun', 'Losyon', 'El Kremi'] },
+  { ad: 'Tıraş', emoji: '🪒', g1: '#64748b', g2: '#475569', renk: 'slate', alt: ['Tıraş Köpüğü', 'Jilet', 'After Shave'] },
+  { ad: 'Bebek & Mendil', emoji: '🍼', g1: '#10b981', g2: '#059669', renk: 'emerald', alt: ['Bebek Bezi', 'Islak Mendil', 'Bebek Şampuanı'] },
+  { ad: 'Kağıt & Ped', emoji: '🧻', g1: '#f59e0b', g2: '#ea580c', renk: 'amber', alt: ['Tuvalet Kağıdı', 'Kağıt Havlu', 'Ped', 'Peçete'] },
 ]
+const AKSAN = {
+  pink: { border: 'border-pink-200', cip: 'bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100', akt: 'bg-pink-600 text-white border-pink-600' },
+  sky: { border: 'border-sky-200', cip: 'bg-sky-50 border-sky-200 text-sky-800 hover:bg-sky-100', akt: 'bg-sky-600 text-white border-sky-600' },
+  violet: { border: 'border-violet-200', cip: 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100', akt: 'bg-violet-600 text-white border-violet-600' },
+  rose: { border: 'border-rose-200', cip: 'bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100', akt: 'bg-rose-600 text-white border-rose-600' },
+  teal: { border: 'border-teal-200', cip: 'bg-teal-50 border-teal-200 text-teal-800 hover:bg-teal-100', akt: 'bg-teal-600 text-white border-teal-600' },
+  cyan: { border: 'border-cyan-200', cip: 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100', akt: 'bg-cyan-600 text-white border-cyan-600' },
+  slate: { border: 'border-slate-300', cip: 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100', akt: 'bg-slate-600 text-white border-slate-600' },
+  emerald: { border: 'border-emerald-200', cip: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100', akt: 'bg-emerald-600 text-white border-emerald-600' },
+  amber: { border: 'border-amber-200', cip: 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100', akt: 'bg-amber-500 text-white border-amber-500' },
+}
 
 function StokRozet({ stok }) {
   if (stok === 'var') return <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5"><Check size={11} /> stokta</span>
@@ -145,6 +157,8 @@ export default function Kozmetik() {
   const [q, setQ] = useState('')
   const [aktifQ, setAktifQ] = useState('')
   const [kategori, setKategori] = useState(null)
+  const [altKelime, setAltKelime] = useState(null) // alt başlık (ürün adında aranan kelime)
+  const [acikKat, setAcikKat] = useState(null)      // açık kutu (alt başlıklar görünsün)
   const [sadeceKarsi, setSadeceKarsi] = useState(false)
   const [gosterilen, setGosterilen] = useState(SAYFA_ADET)
   const [secili, setSecili] = useState(null)
@@ -155,24 +169,25 @@ export default function Kozmetik() {
     return () => { iptal = true }
   }, [])
 
-  // Kategori sayıları (temiz kategorilerden)
-  const kategoriler = useMemo(() => {
-    const say = new Map()
-    tumGruplar.forEach((g) => say.set(g.kategori, (say.get(g.kategori) || 0) + 1))
-    return STANDART_KATEGORILER.filter((k) => say.get(k)).map((k) => ({ kategori: k, adet: say.get(k) }))
-  }, [tumGruplar])
-
   const karsiSayisi = useMemo(() => tumGruplar.filter((g) => g.magazaSayisi > 1).length, [tumGruplar])
+
+  const katSay = useMemo(() => { const m = new Map(); tumGruplar.forEach((g) => m.set(g.kategori, (m.get(g.kategori) || 0) + 1)); return m }, [tumGruplar])
 
   const suzulmus = useMemo(() => {
     let liste = tumGruplar
     if (kategori) liste = liste.filter((g) => g.kategori === kategori)
+    if (altKelime) { const a = altKelime.toLocaleLowerCase('tr'); liste = liste.filter((g) => (`${g.marka} ${g.ad}`).toLocaleLowerCase('tr').includes(a)) }
     if (sadeceKarsi) liste = liste.filter((g) => g.magazaSayisi > 1)
     if (aktifQ) { const q2 = aktifQ.toLocaleLowerCase('tr'); liste = liste.filter((g) => (`${g.marka} ${g.ad}`).toLocaleLowerCase('tr').includes(q2)) }
     return liste
-  }, [tumGruplar, kategori, sadeceKarsi, aktifQ])
+  }, [tumGruplar, kategori, altKelime, sadeceKarsi, aktifQ])
 
-  useEffect(() => { setGosterilen(SAYFA_ADET) }, [kategori, sadeceKarsi, aktifQ])
+  useEffect(() => { setGosterilen(SAYFA_ADET) }, [kategori, altKelime, sadeceKarsi, aktifQ])
+
+  function kutuSec(k) {
+    if (kategori === k.ad) { setKategori(null); setAcikKat(null); setAltKelime(null) }
+    else { setKategori(k.ad); setAcikKat(k.ad); setAltKelime(null) }
+  }
 
   function aramaGonder(e) {
     e?.preventDefault()
@@ -196,24 +211,57 @@ export default function Kozmetik() {
         </form>
       </div>
 
-      {kategoriler.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setKategori(null)} className={`px-3.5 py-2 rounded-full text-sm font-semibold border transition active:scale-95 ${!kategori ? 'bg-fuchsia-600 text-white border-fuchsia-600' : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100'}`}>Tümü</button>
-          {kategoriler.map((k, i) => {
-            const renk = CIP_RENK[i % CIP_RENK.length]
-            const aktif = kategori === k.kategori
+      {/* Kategori kutuları (renkli) + alt başlıklar */}
+      {!yukleniyor && (
+        <section className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {KOZ_KAT.filter((k) => katSay.get(k.ad)).map((k) => {
+              const acik = acikKat === k.ad
+              return (
+                <button key={k.ad} onClick={() => kutuSec(k)} aria-expanded={acik}
+                  style={{ backgroundImage: `linear-gradient(135deg, ${k.g1}, ${k.g2})`, textShadow: '0 1px 2px rgba(0,0,0,0.28)' }}
+                  className={`relative rounded-3xl p-4 text-white text-left shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition ${kategori === k.ad ? 'ring-2 ring-white ring-offset-2 ring-offset-base-100' : ''}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="text-2xl" style={{ textShadow: 'none' }}>{k.emoji}</div>
+                    <ChevronDown size={18} className={`opacity-90 transition-transform ${acik ? 'rotate-180' : ''}`} />
+                  </div>
+                  <div className="font-bold text-sm mt-2 leading-tight">{k.ad}</div>
+                  <div className="text-[11px] opacity-80">{katSay.get(k.ad)} ürün</div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Açık kategorinin alt başlıkları */}
+          {acikKat && (() => {
+            const k = KOZ_KAT.find((x) => x.ad === acikKat)
+            if (!k) return null
+            const ak = AKSAN[k.renk] || {}
             return (
-              <button key={k.kategori} onClick={() => setKategori(k.kategori)} className={`px-3.5 py-2 rounded-full text-sm font-medium border transition active:scale-95 ${aktif ? renk.akt : renk.pas}`}>
-                {baslikYap(k.kategori)} <span className="opacity-60 font-normal">{k.adet}</span>
-              </button>
+              <div className={`rounded-2xl border-2 bg-base-100 p-3.5 ${ak.border || 'border-base-300'}`}>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span className="text-lg">{k.emoji}</span>
+                  <span className="font-semibold text-sm">{k.ad}</span>
+                  <span className="text-xs text-base-content/40">— alt başlık seç</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setAltKelime(null)} className={`px-3.5 py-2 rounded-full text-sm font-semibold border transition active:scale-95 ${!altKelime ? (ak.akt || 'bg-primary text-primary-content border-primary') : 'bg-base-100 border-base-300 text-base-content/70 hover:bg-base-200'}`}>Tümü</button>
+                  {k.alt.map((a) => (
+                    <button key={a} onClick={() => setAltKelime(altKelime === a ? null : a)}
+                      className={`px-3.5 py-2 rounded-full text-sm font-medium border transition active:scale-95 ${altKelime === a ? (ak.akt || 'bg-primary text-primary-content border-primary') : (ak.cip || 'bg-base-200 border-base-300 hover:bg-base-300')}`}>
+                      {a}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )
-          })}
-        </div>
+          })()}
+        </section>
       )}
 
       {!yukleniyor && (
         <div className="flex items-center justify-between gap-2 flex-wrap px-1">
-          <div className="text-xs text-base-content/50">{suzulmus.length} ürün{kategori ? ` · ${kategori}` : ''}{aktifQ ? ` · "${aktifQ}"` : ''}</div>
+          <div className="text-xs text-base-content/50">{suzulmus.length} ürün{kategori ? ` · ${kategori}` : ''}{altKelime ? ` · ${altKelime}` : ''}{aktifQ ? ` · "${aktifQ}"` : ''}</div>
           {karsiSayisi > 0 && (
             <button onClick={() => setSadeceKarsi((v) => !v)} className={`btn btn-xs gap-1 ${sadeceKarsi ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>
               ⚖️ Sadece karşılaştırmalı ({karsiSayisi})
