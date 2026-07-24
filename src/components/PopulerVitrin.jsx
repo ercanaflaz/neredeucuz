@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Loader2 } from 'lucide-react'
 import ProductCard from './ProductCard'
 import { searchByKeyword, normalize } from '../lib/marketfiyati'
+import { POPULER } from '../data/populer'
 
-// Popüler ürün vitrini: en çok aranan terimlerden bir temsilci ürün gösterir.
-// - Her yüklemede terimler karıştırılır ve her terim için ADAYLAR arasından rastgele
-//   biri seçilir → sayfa yenilendikçe farklı ürünler gelir.
-// - Temsilci seçimi bir PUANA göre: çok markette olan (mainstream) + görselli öne çıkar;
-//   "çilekli süt / bıldırcın yumurta" gibi uç/özel varyantlar geri düşer.
+// Popüler ürün vitrini: en çok aranan terimlerden temsilci ürünler gösterir.
+// - HER zaman `adet` (varsayılan 8) kart gelir: terim havuzu (gelen popüler + statik yedek)
+//   karıştırılır ve 8 benzersiz ürün toplanana kadar çekilir. Ürün döndürmeyen/mükerrer
+//   terimler atlanır, sıradaki denenir.
+// - Her yüklemede farklı: havuz karıştırılır + her terim için ADAYLAR arasından rastgele biri.
+// - Temsilci seçimi PUANA göre: çok markette olan (mainstream) + görselli öne çıkar;
+//   "çilekli süt / bıldırcın yumurta / buzlu çay" gibi uç varyantlar geri düşer.
 // marketfiyati indirim/kampanya vermediği için "kampanya" değil, gerçek arama verisine
 // dayalı popüler ürünler + en ucuz marketleri gösterilir.
 
@@ -31,24 +34,32 @@ export default function PopulerVitrin({ terimler, konum, onSelect, adet = 8 }) {
   const [yukleniyor, setYukleniyor] = useState(true)
   const sonAnahtar = useRef(null)
 
-  const tumTerim = terimler || []
-  // anahtar TÜM terimlerden (kararlı) — her render'da değişmesin diye karıştırma effect içinde.
+  // Terim havuzu: gelen popüler terimler + statik yedek (dedup). 8'i garanti + çeşitlilik.
+  const havuz = useMemo(() => {
+    const gorulen = new Set()
+    const liste = []
+    for (const t of [...(terimler || []), ...POPULER]) {
+      const k = (t.terim || '').toLocaleLowerCase('tr')
+      if (!k || gorulen.has(k)) continue
+      gorulen.add(k)
+      liste.push(t)
+    }
+    return liste
+  }, [terimler])
+
   const anahtar =
-    tumTerim.map((t) => t.terim).join('|') +
+    havuz.map((t) => t.terim).join('|') +
     '@' + (konum ? `${Number(konum.latitude).toFixed(2)},${Number(konum.longitude).toFixed(2)},${konum.distance || ''}` : 'yok')
 
   useEffect(() => {
-    if (!tumTerim.length) { setUrunler([]); setYukleniyor(false); return }
+    if (!havuz.length) { setUrunler([]); setYukleniyor(false); return }
     if (sonAnahtar.current === anahtar) return
     sonAnahtar.current = anahtar
     let iptal = false
     setYukleniyor(true)
     setUrunler([])
 
-    // Her yüklemede farklı: terimleri karıştır, ilk `adet` tanesini al.
-    const secilen = karistir(tumTerim).slice(0, adet)
-
-    // Takılan bir istek tüm vitrini kilitlemesin — 8 sn'de null'a düş.
+    // Takılan bir istek vitrini kilitlemesin — 8 sn'de null'a düş.
     const zamanAsimli = (p, ms) => Promise.race([
       Promise.resolve(p).catch(() => null),
       new Promise((res) => setTimeout(() => res(null), ms)),
@@ -59,10 +70,10 @@ export default function PopulerVitrin({ terimler, konum, onSelect, adet = 8 }) {
         const yanit = await zamanAsimli(searchByKeyword(t.terim, konum), 8000)
         if (!yanit) return null
         const liste = normalize(yanit, konum)
-        const havuz = liste.filter((u) => u.minPrice != null && u.marketCount > 0)
-        if (!havuz.length) return null
+        const havuzU = liste.filter((u) => u.minPrice != null && u.marketCount > 0)
+        if (!havuzU.length) return null
         // En alakalı ilk 12 → puana göre en iyi 5 → aralarından RASTGELE biri (çeşitlilik).
-        const enIyi = havuz.slice(0, 12).sort((a, b) => puan(b) - puan(a)).slice(0, 5)
+        const enIyi = havuzU.slice(0, 12).sort((a, b) => puan(b) - puan(a)).slice(0, 5)
         const sec = enIyi[Math.floor(Math.random() * enIyi.length)]
         return { ...sec, _terim: t.terim }
       } catch { return null }
@@ -71,13 +82,17 @@ export default function PopulerVitrin({ terimler, konum, onSelect, adet = 8 }) {
     ;(async () => {
       const gorulen = new Set()
       const birikmis = []
-      const BATCH = 3 // aynı anda en çok 3 istek — API'yi kilitlememek için
-      for (let i = 0; i < secilen.length && !iptal; i += BATCH) {
-        const cikti = await Promise.all(secilen.slice(i, i + BATCH).map(birUrun))
+      const sirali = karistir(havuz)
+      const BATCH = 4
+      // 8 benzersiz ürün toplanana (ya da havuz bitene) kadar çek.
+      for (let i = 0; i < sirali.length && !iptal && birikmis.length < adet; i += BATCH) {
+        const cikti = await Promise.all(sirali.slice(i, i + BATCH).map(birUrun))
         if (iptal) return
-        for (const u of cikti) { if (u && !gorulen.has(u.id)) { gorulen.add(u.id); birikmis.push(u) } }
-        setUrunler([...birikmis]) // kartları geldikçe göster
-        setYukleniyor(false)      // ilk parti gelince spinner'ı kaldır
+        for (const u of cikti) {
+          if (u && !gorulen.has(u.id) && birikmis.length < adet) { gorulen.add(u.id); birikmis.push(u) }
+        }
+        setUrunler(birikmis.slice(0, adet)) // geldikçe göster
+        if (birikmis.length) setYukleniyor(false)
       }
       if (!iptal) setYukleniyor(false)
     })()
