@@ -124,27 +124,47 @@ async function main() {
   if (!hedefler.length) { console.log('Zenginleştirilecek ürün yok — çıkılıyor.'); return }
 
   const browser = await chromium.launch({ headless: true, ...proxyOpt })
-  const context = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
-  await context.route('**/*', (route) => {
-    const t = route.request().resourceType()
-    if (t === 'image' || t === 'media' || t === 'font' || t === 'stylesheet') return route.abort()
-    return route.continue()
-  })
-  const page = await context.newPage()
+  // Taze context = yeni proxy IP (rotating gateway). Bloklanan IP'yi bırakmak için kullanılır.
+  const yeniSayfa = async () => {
+    const ctx = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
+    await ctx.route('**/*', (route) => {
+      const t = route.request().resourceType()
+      if (t === 'image' || t === 'media' || t === 'font' || t === 'stylesheet') return route.abort()
+      return route.continue()
+    })
+    return { ctx, page: await ctx.newPage() }
+  }
 
-  let guncellenen = 0, kartYok = 0, hata = 0
+  let { ctx, page } = await yeniSayfa()
+  let guncellenen = 0, kartYok = 0, hata = 0, ard403 = 0
+  const ipYenile = async () => { try { await ctx.close() } catch { /* yok */ } await BEKLE(4000); ({ ctx, page } = await yeniSayfa()); ard403 = 0; console.log('  ↻ yeni proxy IP') }
+
   try {
     for (let i = 0; i < hedefler.length; i++) {
       const s = hedefler[i]
-      try {
-        const resp = await page.goto(s.url, { waitUntil: 'domcontentloaded', timeout: 60000 })
-        if (resp && resp.status() === 403) { console.log(`403 — ${s.url}`); hata++; await BEKLE(2000); continue }
-        await BEKLE(300)
-        const kart = await kartFiyatOku(page, s.fiyat)
-        if (kart) { await kartGuncelle(s.id, kart); guncellenen++; if (guncellenen <= 15 || guncellenen % 25 === 0) console.log(`✓ ${s.ad} — ${s.fiyat}₺ → kart ${kart}₺`) }
-        else kartYok++
-      } catch (e) { hata++; if (hata <= 10) console.log(`hata: ${s.url} — ${e.message}`) }
-      await BEKLE(250)
+      let tamam = false
+      for (let deneme = 0; deneme < 3 && !tamam; deneme++) {
+        try {
+          const resp = await page.goto(s.url, { waitUntil: 'domcontentloaded', timeout: 90000 })
+          const durum = resp ? resp.status() : 0
+          if (durum === 403 || durum === 429) {
+            ard403++
+            if (ard403 >= 3) await ipYenile()          // arka arkaya blok → yeni IP
+            else await BEKLE(2000 + deneme * 2000)
+            continue                                    // aynı ürünü tekrar dene
+          }
+          ard403 = 0
+          await BEKLE(300)
+          const kart = await kartFiyatOku(page, s.fiyat)
+          if (kart) { await kartGuncelle(s.id, kart); guncellenen++; if (guncellenen <= 15 || guncellenen % 25 === 0) console.log(`✓ ${s.ad} — ${s.fiyat}₺ → kart ${kart}₺`) }
+          else kartYok++
+          tamam = true
+        } catch (e) {
+          if (deneme === 2) { hata++; if (hata <= 12) console.log(`hata: ${s.url} — ${e.message}`) }
+          else await BEKLE(1500 + deneme * 1500)
+        }
+      }
+      await BEKLE(450) // istekler arası biraz daha nefes — 403 riskini azaltır
       if ((i + 1) % 50 === 0) console.log(`… ${i + 1}/${hedefler.length} (güncellenen ${guncellenen}, kart yok ${kartYok}, hata ${hata})`)
     }
   } finally {

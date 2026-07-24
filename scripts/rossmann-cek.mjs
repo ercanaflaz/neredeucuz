@@ -63,53 +63,62 @@ async function main() {
   else console.log('Proxy YOK — PROXY_SERVER secret ekli değil. Rossmann 403 verir.')
 
   const browser = await chromium.launch({ headless: true, ...proxyOpt })
-  const context = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
-  // Görsel/CSS/font/video indirme — bize sadece HTML+JSON-LD lazım. Hem hızlanır
-  // hem de proxy trafiği (5 GB) çok daha az harcanır.
-  await context.route('**/*', (route) => {
-    const t = route.request().resourceType()
-    if (t === 'image' || t === 'media' || t === 'font' || t === 'stylesheet') return route.abort()
-    return route.continue()
-  })
-  const page = await context.newPage()
+  // Görsel/CSS/font indirme — bize sadece HTML+JSON-LD lazım. Hem hızlanır hem de
+  // proxy trafiği çok daha az harcanır. Her kategoriye TAZE context (yeni proxy IP):
+  // hem "another navigation to chrome-error" zincirini keser hem de timeout/403 olan
+  // IP'yi bırakır.
+  const yeniSayfa = async () => {
+    const ctx = await browser.newContext({ userAgent: UA, locale: 'tr-TR', viewport: { width: 1366, height: 900 } })
+    await ctx.route('**/*', (route) => {
+      const t = route.request().resourceType()
+      if (t === 'image' || t === 'media' || t === 'font' || t === 'stylesheet') return route.abort()
+      return route.continue()
+    })
+    return { ctx, page: await ctx.newPage() }
+  }
   const hepsi = []
 
   try {
     for (const kat of KATEGORILER) {
       const listeUrl = `https://www.rossmann.com.tr/${kat}`
       let linkler = []
-      try {
-        const resp = await page.goto(listeUrl, { waitUntil: 'domcontentloaded', timeout: 60000 })
-        if (resp && resp.status() === 403) { console.log(`[${kat}] 403 (proxy IP'si de engelli olabilir)`); continue }
-        await BEKLE(500)
-        // Daha fazla ürün yüklensin diye sayfayı birkaç kez aşağı kaydır (lazy-load)
-        for (let s = 0; s < 12; s++) {
-          await page.evaluate(() => window.scrollBy(0, document.body.scrollHeight))
-          await BEKLE(700)
-        }
-        linkler = await page.$$eval('a[href*="-p-"]', (as) => [...new Set(as.map((a) => a.href).filter((h) => /-p-[a-z0-9]+/i.test(h)))])
-        linkler = linkler.slice(0, URUN_LIMIT)
-      } catch (e) { console.log(`[${kat}] liste hatası:`, e.message); continue }
-      console.log(`[${kat}] ${linkler.length} ürün linki`)
-
-      for (const u of linkler) {
+      // En çok 2 deneme; her deneme yeni context (yeni IP) ile.
+      for (let deneme = 0; deneme < 2 && !linkler.length; deneme++) {
+        const { ctx, page } = await yeniSayfa()
         try {
-          await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 60000 })
-          const p = urunBul(await jsonLdOku(page))
-          if (!p) continue
-          const offer = Array.isArray(p.offers) ? p.offers[0] : p.offers
-          const fiyat = Number(offer?.price)
-          const marka = (p.brand && (p.brand.name || p.brand)) || null
-          if (!p.name || !Number.isFinite(fiyat)) continue
-          hepsi.push({
-            magaza: 'Rossmann', ad: p.name, marka, barkod: null,
-            fiyat: Math.round(fiyat * 100) / 100, kart_fiyat: null,
-            stok: /InStock/i.test(offer?.availability || '') ? 'var' : (offer?.availability ? 'yok' : null),
-            gorsel: Array.isArray(p.image) ? p.image[0] : p.image || null,
-            url: u, kategori: kat, eslesme: eslesmeAnahtar(marka || '', p.name),
-          })
-        } catch { /* tek ürün — geç */ }
-        await BEKLE(120)
+          const resp = await page.goto(listeUrl, { waitUntil: 'domcontentloaded', timeout: 90000 })
+          if (resp && (resp.status() === 403 || resp.status() === 429)) { console.log(`[${kat}] ${resp.status()} (deneme ${deneme + 1})`); await ctx.close(); await BEKLE(3000); continue }
+          await BEKLE(600)
+          // Lazy-load için sayfayı birkaç kez aşağı kaydır
+          for (let s = 0; s < 12; s++) {
+            await page.evaluate(() => window.scrollBy(0, document.body.scrollHeight))
+            await BEKLE(700)
+          }
+          linkler = await page.$$eval('a[href*="-p-"]', (as) => [...new Set(as.map((a) => a.href).filter((h) => /-p-[a-z0-9]+/i.test(h)))])
+          linkler = linkler.slice(0, URUN_LIMIT)
+          console.log(`[${kat}] ${linkler.length} ürün linki`)
+
+          for (const u of linkler) {
+            try {
+              await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 90000 })
+              const p = urunBul(await jsonLdOku(page))
+              if (!p) continue
+              const offer = Array.isArray(p.offers) ? p.offers[0] : p.offers
+              const fiyat = Number(offer?.price)
+              const marka = (p.brand && (p.brand.name || p.brand)) || null
+              if (!p.name || !Number.isFinite(fiyat)) continue
+              hepsi.push({
+                magaza: 'Rossmann', ad: p.name, marka, barkod: null,
+                fiyat: Math.round(fiyat * 100) / 100, kart_fiyat: null,
+                stok: /InStock/i.test(offer?.availability || '') ? 'var' : (offer?.availability ? 'yok' : null),
+                gorsel: Array.isArray(p.image) ? p.image[0] : p.image || null,
+                url: u, kategori: kat, eslesme: eslesmeAnahtar(marka || '', p.name),
+              })
+            } catch { /* tek ürün — geç */ }
+            await BEKLE(150)
+          }
+        } catch (e) { console.log(`[${kat}] hata (deneme ${deneme + 1}):`, e.message) }
+        finally { await ctx.close() }
       }
     }
   } finally {
