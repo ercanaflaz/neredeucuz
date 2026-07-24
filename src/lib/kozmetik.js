@@ -1,28 +1,52 @@
 import { supabase } from './supabase'
 
-// Kozmetik ürünlerini (kozmetik_urunler) çeker ve mağazalar arası EŞLEŞTİRİR.
-// Aynı `eslesme` anahtarına sahip satırlar tek ürün olarak gruplanır; her mağazanın
-// fiyatı yan yana gelir, en ucuz işaretlenir. Eşleşmesi olmayan ürün tek başına görünür.
-export async function kozmetikGrupluYukle({ q = '', kategori = null } = {}) {
-  let sorgu = supabase.from('kozmetik_urunler').select('*').limit(3000)
-  if (kategori) sorgu = sorgu.eq('kategori', kategori)
-  if (q && q.trim()) sorgu = sorgu.ilike('ad', `%${q.trim()}%`)
-  const { data, error } = await sorgu
-  if (error) { console.warn('kozmetik yükleme hatası:', error.message); return [] }
+// Mağazalar arası "aynı ürün" eşleştirme anahtarı — marka + ürün adındaki anlamlı
+// kelimeler (sıralı, tekilleştirilmiş; boyut/stopword/marka tekrarı atılmış).
+// Böylece kelime sırası ve fazla kelime farkları eşleşmeyi bozmaz.
+const ES_STOP = new Set(['ve', 'ile', 'için', 'icin', 'yeni', 'set', 'paket', 'adet', 'ml', 'lt', 'l', 'gr', 'g', 'kg', 'cl', 'x', 'li', 'lu', 'lı', 'no', 'kadın', 'kadin', 'erkek', 'bayan', 'ea', 'the'])
+const norm = (v) => (v || '').toLocaleLowerCase('tr').replace(/[^0-9a-zçğıöşü ]/gi, ' ').replace(/\s+/g, ' ').trim()
+function anahtarUret(marka, ad) {
+  const m = norm(marka)
+  const markaTok = new Set(m.split(' ').filter(Boolean))
+  let t = norm(ad).split(' ').filter((x) => x.length > 1 && !ES_STOP.has(x) && !markaTok.has(x) && !/^\d+$/.test(x))
+  t = [...new Set(t)].sort()
+  const k = (m + ' ' + t.join(' ')).trim()
+  return k || null
+}
 
-  // eslesme anahtarına göre grupla (yoksa kendi id'siyle tek başına)
+// Tüm eşleşen satırları sayfa sayfa çeker (Supabase istek başına 1000 satır sınırı).
+async function tumSatirlar({ q, kategori }) {
+  const hepsi = []
+  for (let off = 0; off < 15000; off += 1000) {
+    let sorgu = supabase.from('kozmetik_urunler').select('*').order('id', { ascending: true }).range(off, off + 999)
+    if (kategori) sorgu = sorgu.eq('kategori', kategori)
+    if (q && q.trim()) sorgu = sorgu.ilike('ad', `%${q.trim()}%`)
+    const { data, error } = await sorgu
+    if (error) { console.warn('kozmetik yükleme hatası:', error.message); break }
+    if (!data || !data.length) break
+    hepsi.push(...data)
+    if (data.length < 1000) break
+  }
+  return hepsi
+}
+
+// Ürünleri çeker ve mağazalar arası eşleştirir. Aynı anahtardaki satırlar tek ürün olur;
+// her mağazanın en ucuz fiyatı yan yana gelir, en ucuz işaretlenir.
+export async function kozmetikGrupluYukle({ q = '', kategori = null } = {}) {
+  const satirlar = await tumSatirlar({ q, kategori })
+
   const gruplar = new Map()
-  for (const r of data || []) {
-    const key = r.eslesme || `tek-${r.id}`
+  for (const r of satirlar) {
+    const key = anahtarUret(r.marka, r.ad) || `tek-${r.id}`
     if (!gruplar.has(key)) gruplar.set(key, [])
     gruplar.get(key).push(r)
   }
 
   const sonuc = []
-  for (const satirlar of gruplar.values()) {
-    // Her mağazadan en ucuz fiyatı al (aynı mağazada tekrar varsa)
+  for (const grup of gruplar.values()) {
+    // Her mağazadan en ucuz fiyat
     const magazaMap = new Map()
-    for (const s of satirlar) {
+    for (const s of grup) {
       if (s.fiyat == null) continue
       const ex = magazaMap.get(s.magaza)
       if (!ex || s.fiyat < ex.fiyat) magazaMap.set(s.magaza, s)
@@ -31,9 +55,9 @@ export async function kozmetikGrupluYukle({ q = '', kategori = null } = {}) {
     if (!magazalar.length) continue
     const enUcuz = magazalar[0]
     const enPahali = magazalar[magazalar.length - 1]
-    const ornek = satirlar.find((s) => s.gorsel) || enUcuz
+    const ornek = grup.find((s) => s.gorsel) || enUcuz
     sonuc.push({
-      anahtar: enUcuz.eslesme || `tek-${enUcuz.id}`,
+      anahtar: `${enUcuz.magaza}-${enUcuz.id}`,
       ad: ornek.ad,
       marka: ornek.marka,
       gorsel: ornek.gorsel,
@@ -50,11 +74,14 @@ export async function kozmetikGrupluYukle({ q = '', kategori = null } = {}) {
   return sonuc
 }
 
-// Mevcut kategorileri (adetleriyle) getir — filtre çipleri için.
+// Mevcut kategorileri (adetleriyle) getir — filtre çipleri için. Sayfa sayfa sayar.
 export async function kozmetikKategoriler() {
-  const { data, error } = await supabase.from('kozmetik_urunler').select('kategori')
-  if (error || !data) return []
   const say = new Map()
-  data.forEach((r) => { if (r.kategori) say.set(r.kategori, (say.get(r.kategori) || 0) + 1) })
+  for (let off = 0; off < 15000; off += 1000) {
+    const { data, error } = await supabase.from('kozmetik_urunler').select('kategori').order('id', { ascending: true }).range(off, off + 999)
+    if (error || !data || !data.length) break
+    data.forEach((r) => { if (r.kategori) say.set(r.kategori, (say.get(r.kategori) || 0) + 1) })
+    if (data.length < 1000) break
+  }
   return [...say.entries()].sort((a, b) => b[1] - a[1]).map(([kategori, adet]) => ({ kategori, adet }))
 }
