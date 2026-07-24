@@ -47,63 +47,47 @@ function MagazaEtiket({ magaza }) {
 
 function Kart({ g, kartMod, onClick }) {
   const karsilastirmali = g.magazaSayisi > 1
-  const { sirali, enUcuz, tasarruf } = grupFiyat(g, kartMod)
-  const kartVar = sirali.some((m) => m.kartIle)
+  const { enUcuz, enPahali, tasarruf } = grupFiyat(g, kartMod)
+  const yuzdeFark = enPahali && enPahali.etkin > enUcuz.etkin ? Math.round((1 - enUcuz.etkin / enPahali.etkin) * 100) : 0
   return (
     <div onClick={onClick} role="button" tabIndex={0}
-      className="bg-base-100 rounded-2xl border border-base-300 hover:border-primary/40 hover:shadow-md overflow-hidden flex flex-col transition cursor-pointer active:scale-[0.98]">
+      className="group bg-base-100 rounded-2xl border border-base-300 hover:border-primary/40 hover:shadow-md overflow-hidden flex flex-col cursor-pointer transition">
+      {/* Büyük görsel — market kartıyla birebir aynı */}
       <div className="relative aspect-square bg-white p-3">
         {g.gorsel ? (
-          <img src={g.gorsel} alt="" loading="lazy" className="w-full h-full object-contain" />
+          <img src={g.gorsel} alt="" loading="lazy" className="w-full h-full object-contain group-hover:scale-[1.03] transition" />
         ) : (
           <div className="w-full h-full grid place-items-center bg-gradient-to-br from-primary/5 to-secondary/5">
             <div className="flex flex-col items-center gap-1.5 opacity-80">
               <img src="/favicon.svg" alt="" className="w-11 h-11 rounded-xl shadow-sm" />
               <span className="text-xs font-extrabold tracking-tight leading-none"><span className="text-primary">nerede</span><span className="text-secondary">ucuz</span></span>
+              <span className="text-[9px] text-base-content/40 leading-none">görsel yok</span>
             </div>
           </div>
         )}
         {karsilastirmali && <span className="absolute top-2 left-2 text-[10px] font-bold bg-primary text-primary-content rounded-full px-2 py-0.5">{g.magazaSayisi} mağaza</span>}
+        {yuzdeFark > 0 && <span className="absolute top-2 right-2 text-[10px] font-bold bg-secondary text-secondary-content rounded-full px-2 py-0.5">%{yuzdeFark} fark</span>}
       </div>
 
+      {/* Bilgi — market kartıyla aynı düzen */}
       <div className="p-2.5 flex flex-col gap-1 flex-1">
         <div className="font-medium text-sm leading-tight line-clamp-2 min-h-[2.4em]">{g.ad}</div>
         {g.marka && <div className="text-[11px] text-base-content/40 -mt-0.5 truncate">{g.marka}</div>}
-
-        <div className="mt-auto pt-1 space-y-1.5">
-          <StokRozet stok={enUcuz.stok} />
-          {karsilastirmali ? (
-            <>
-              <div className="space-y-1">
-                {sirali.map((m, i) => (
-                  <div key={m.magaza} className={`flex items-center justify-between rounded-lg px-2 py-1 ${i === 0 ? 'bg-green-50 border border-green-200' : 'bg-base-200/60'}`}>
-                    <span className="flex items-center gap-1">
-                      <MagazaEtiket magaza={m.magaza} />
-                      {m.kartIle && <span className="text-[9px] font-bold text-secondary bg-secondary/10 rounded px-1 leading-tight">kart</span>}
-                    </span>
-                    <span className={`text-sm font-bold ${i === 0 ? 'text-green-700' : 'text-base-content/50 line-through'}`}>{tl(m.etkin)}</span>
-                  </div>
-                ))}
-              </div>
-              {tasarruf > 0 && (
-                <div className="flex items-center gap-1 text-[11px] font-semibold text-secondary">
-                  <TrendingDown size={13} /> {tl(tasarruf)} daha ucuz — {enUcuz.magaza}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex items-end justify-between gap-1">
-              <div>
-                <div className="text-[10px] text-base-content/40 leading-none">{enUcuz.kartIle ? 'kart fiyatı' : 'fiyat'}</div>
-                <div className="text-lg font-extrabold text-primary leading-tight">{tl(enUcuz.etkin)}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] text-base-content/40 leading-none">nerede</div>
-                <MagazaEtiket magaza={enUcuz.magaza} />
-              </div>
+        <div className="mt-auto pt-1 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <MagazaEtiket magaza={enUcuz.magaza} />
+            {karsilastirmali && <span className="text-[10px] text-base-content/40 font-medium">+{g.magazaSayisi - 1} mağaza</span>}
+            <StokRozet stok={enUcuz.stok} />
+          </div>
+          <div className="flex items-end justify-between gap-1">
+            <div>
+              <div className="text-[10px] text-base-content/40 leading-none">{enUcuz.kartIle ? 'kart fiyatı' : 'en ucuz'}</div>
+              <div className="text-lg font-extrabold text-primary leading-tight">{tl(enUcuz.etkin)}</div>
             </div>
-          )}
-          <div className="text-[10px] text-base-content/40 leading-none">{kartVar ? '🏷️ kart fiyatı dahil' : '🏷️ herkese açık fiyat'}</div>
+            {enUcuz.kartIle
+              ? <span className="text-[9px] font-bold text-secondary bg-secondary/10 rounded px-1 py-0.5 self-end mb-0.5">kart</span>
+              : (tasarruf > 0 && <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-secondary self-end mb-0.5"><TrendingDown size={11} />{tl(tasarruf)}</span>)}
+          </div>
         </div>
       </div>
     </div>
