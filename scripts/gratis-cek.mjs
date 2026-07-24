@@ -31,8 +31,12 @@ const KELIMELER = (process.env.KELIMELER || [
   'rexona', 'old spice', 'axe', 'fa', 'bepanthol', 'la roche posay', 'bioderma', 'avene', 'vichy',
   'eucerin', 'cetaphil', 'neutrogena', 'sebamed', 'urban care', 'the ceel', 'ashley joy', 'eveline',
   'nyx', 'essence', 'catrice', 'revolution', 'wet n wild', 'aloe vera',
+  // Eve'de çok, Gratis'te de aranınca çıkan markalar — eşleşmeyi belirgin artırır
+  'technic', 'w7', 'nascita', 'make up academy', 'makeup academy', 'ruby rose',
+  'gabrini', 'farmasi', 'dermokil', 'bell', 'lulu', 'topface', 'callista', 'seventeen',
+  'aloe', 'huda', 'the purest', 'pierre cardin', 'sleek', 'max factor', 'rimmel',
 ].join(',')).split(',').map((s) => s.trim()).filter(Boolean)
-const URUN_LIMIT = Number(process.env.URUN_LIMIT || 48) // kelime başına ürün
+const URUN_LIMIT = Number(process.env.URUN_LIMIT || 60) // kelime başına ürün
 
 async function getir(url) {
   const r = await fetch(url, {
