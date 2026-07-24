@@ -49,6 +49,29 @@ async function tumSatirlar() {
   return hepsi
 }
 
+// Bir mağaza satırının seçilen moda göre "etkin" (geçerli) fiyatı.
+// kartMod=true → kart fiyatı varsa onu, yoksa herkese açık fiyatı kullan.
+// kartMod=false → her zaman herkese açık fiyat.
+export function etkinFiyat(m, kartMod = true) {
+  if (kartMod && m.kart_fiyat != null && m.kart_fiyat > 0 && m.kart_fiyat < m.fiyat) return m.kart_fiyat
+  return m.fiyat
+}
+
+// Bir grubu (aynı ürünün mağazaları) seçilen moda göre fiyatlandırır ve sıralar.
+// Döner: { sirali:[{...m, etkin, kartIle}], enUcuz, enPahali, tasarruf }
+export function grupFiyat(g, kartMod = true) {
+  const sirali = g.magazalar
+    .map((m) => {
+      const kartIle = kartMod && m.kart_fiyat != null && m.kart_fiyat > 0 && m.kart_fiyat < m.fiyat
+      return { ...m, etkin: kartIle ? m.kart_fiyat : m.fiyat, kartIle }
+    })
+    .sort((a, b) => a.etkin - b.etkin)
+  const enUcuz = sirali[0]
+  const enPahali = sirali[sirali.length - 1]
+  const tasarruf = sirali.length > 1 ? Math.round((enPahali.etkin - enUcuz.etkin) * 100) / 100 : 0
+  return { sirali, enUcuz, enPahali, tasarruf }
+}
+
 // Tüm ürünleri çekip mağazalar arası eşleştirir. Her grup temiz bir kategoriye atanır.
 export async function kozmetikTumGruplar() {
   const satirlar = await tumSatirlar()
@@ -59,31 +82,35 @@ export async function kozmetikTumGruplar() {
     gruplar.get(key).push(r)
   }
 
+  // Kart varsa kart, yoksa açık fiyat — grubu kurarken varsayılan (kart modu) baz alınır.
+  const eff = (s) => (s.kart_fiyat != null && s.kart_fiyat > 0 && s.kart_fiyat < s.fiyat ? s.kart_fiyat : s.fiyat)
+
   const sonuc = []
   for (const grup of gruplar.values()) {
     const magazaMap = new Map()
     for (const s of grup) {
       if (s.fiyat == null) continue
       const ex = magazaMap.get(s.magaza)
-      if (!ex || s.fiyat < ex.fiyat) magazaMap.set(s.magaza, s)
+      if (!ex || eff(s) < eff(ex)) magazaMap.set(s.magaza, s)
     }
-    const magazalar = [...magazaMap.values()].sort((a, b) => a.fiyat - b.fiyat)
-    if (!magazalar.length) continue
-    const enUcuz = magazalar[0]
-    const enPahali = magazalar[magazalar.length - 1]
-    const ornek = grup.find((s) => s.gorsel) || enUcuz
+    const secilenler = [...magazaMap.values()]
+    if (!secilenler.length) continue
+    const magazalar = secilenler
+      .map((s) => ({ magaza: s.magaza, fiyat: s.fiyat, kart_fiyat: s.kart_fiyat ?? null, stok: s.stok, url: s.url }))
+      .sort((a, b) => eff(a) - eff(b))
+    const ucuzRow = secilenler.slice().sort((a, b) => eff(a) - eff(b))[0]
+    const ornek = grup.find((s) => s.gorsel) || ucuzRow
     sonuc.push({
-      anahtar: `${enUcuz.magaza}-${enUcuz.id}`,
+      anahtar: `${ucuzRow.magaza}-${ucuzRow.id}`,
       ad: ornek.ad,
       marka: ornek.marka,
       gorsel: ornek.gorsel,
       kategori: kategoriBul(ornek.ad, ornek.kategori),
-      enUcuz: { magaza: enUcuz.magaza, fiyat: enUcuz.fiyat, url: enUcuz.url, stok: enUcuz.stok },
-      magazalar: magazalar.map((s) => ({ magaza: s.magaza, fiyat: s.fiyat, stok: s.stok, url: s.url })),
+      magazalar,
       magazaSayisi: magazalar.length,
-      tasarruf: magazalar.length > 1 ? Math.round((enPahali.fiyat - enUcuz.fiyat) * 100) / 100 : 0,
+      _sira: eff(ucuzRow),
     })
   }
-  sonuc.sort((a, b) => (b.magazaSayisi - a.magazaSayisi) || (a.enUcuz.fiyat - b.enUcuz.fiyat))
+  sonuc.sort((a, b) => (b.magazaSayisi - a.magazaSayisi) || (a._sira - b._sira))
   return sonuc
 }

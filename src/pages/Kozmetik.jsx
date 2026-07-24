@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Search, Loader2, Sparkles, Check, X, TrendingDown, ChevronDown } from 'lucide-react'
 import { tl } from '../lib/format'
-import { kozmetikTumGruplar } from '../lib/kozmetik'
+import { kozmetikTumGruplar, grupFiyat } from '../lib/kozmetik'
 import { izle } from '../lib/izleme'
 
 const SAYFA_ADET = 40
@@ -10,8 +10,6 @@ const baslikYap = (s) => (s || '')
 // Mağaza rengi
 const MAGAZA_RENK = { Gratis: '#E6007E', Rossmann: '#C8102E', Eve: '#0D9488' }
 const magazaRenk = (m) => MAGAZA_RENK[m] || '#7c3aed'
-// Kart indirimi olan (üyelik) mağazalar — fiyatları "kartsız" olarak gösteriyoruz
-const KART_MAGAZA = new Set(['Gratis', 'Rossmann'])
 
 // Kategori kutuları (ana sayfa tarzı: renkli kutu + alt başlıklar). ad = STANDART_KATEGORILER ile birebir.
 // alt = ürün adında aranan alt-kelimeler (ikinci seviye filtre).
@@ -47,9 +45,10 @@ function MagazaEtiket({ magaza }) {
   return <span className="text-xs font-bold" style={{ color: magazaRenk(magaza) }}>{magaza}</span>
 }
 
-function Kart({ g, onClick }) {
+function Kart({ g, kartMod, onClick }) {
   const karsilastirmali = g.magazaSayisi > 1
-  const kartVar = g.magazalar.some((m) => KART_MAGAZA.has(m.magaza))
+  const { sirali, enUcuz, tasarruf } = grupFiyat(g, kartMod)
+  const kartVar = sirali.some((m) => m.kartIle)
   return (
     <div onClick={onClick} role="button" tabIndex={0}
       className="bg-base-100 rounded-2xl border border-base-300 hover:border-primary/40 hover:shadow-md overflow-hidden flex flex-col transition cursor-pointer active:scale-[0.98]">
@@ -72,43 +71,47 @@ function Kart({ g, onClick }) {
         {g.marka && <div className="text-[11px] text-base-content/40 -mt-0.5 truncate">{g.marka}</div>}
 
         <div className="mt-auto pt-1 space-y-1.5">
-          <StokRozet stok={g.enUcuz.stok} />
+          <StokRozet stok={enUcuz.stok} />
           {karsilastirmali ? (
             <>
               <div className="space-y-1">
-                {g.magazalar.map((m, i) => (
+                {sirali.map((m, i) => (
                   <div key={m.magaza} className={`flex items-center justify-between rounded-lg px-2 py-1 ${i === 0 ? 'bg-green-50 border border-green-200' : 'bg-base-200/60'}`}>
-                    <MagazaEtiket magaza={m.magaza} />
-                    <span className={`text-sm font-bold ${i === 0 ? 'text-green-700' : 'text-base-content/50 line-through'}`}>{tl(m.fiyat)}</span>
+                    <span className="flex items-center gap-1">
+                      <MagazaEtiket magaza={m.magaza} />
+                      {m.kartIle && <span className="text-[9px] font-bold text-secondary bg-secondary/10 rounded px-1 leading-tight">kart</span>}
+                    </span>
+                    <span className={`text-sm font-bold ${i === 0 ? 'text-green-700' : 'text-base-content/50 line-through'}`}>{tl(m.etkin)}</span>
                   </div>
                 ))}
               </div>
-              {g.tasarruf > 0 && (
+              {tasarruf > 0 && (
                 <div className="flex items-center gap-1 text-[11px] font-semibold text-secondary">
-                  <TrendingDown size={13} /> {tl(g.tasarruf)} daha ucuz — {g.enUcuz.magaza}
+                  <TrendingDown size={13} /> {tl(tasarruf)} daha ucuz — {enUcuz.magaza}
                 </div>
               )}
             </>
           ) : (
             <div className="flex items-end justify-between gap-1">
               <div>
-                <div className="text-[10px] text-base-content/40 leading-none">fiyat</div>
-                <div className="text-lg font-extrabold text-primary leading-tight">{tl(g.enUcuz.fiyat)}</div>
+                <div className="text-[10px] text-base-content/40 leading-none">{enUcuz.kartIle ? 'kart fiyatı' : 'fiyat'}</div>
+                <div className="text-lg font-extrabold text-primary leading-tight">{tl(enUcuz.etkin)}</div>
               </div>
               <div className="text-right">
                 <div className="text-[10px] text-base-content/40 leading-none">nerede</div>
-                <MagazaEtiket magaza={g.enUcuz.magaza} />
+                <MagazaEtiket magaza={enUcuz.magaza} />
               </div>
             </div>
           )}
-          {kartVar && <div className="text-[10px] text-base-content/40 leading-none">🏷️ kartsız fiyat</div>}
+          <div className="text-[10px] text-base-content/40 leading-none">{kartVar ? '🏷️ kart fiyatı dahil' : '🏷️ herkese açık fiyat'}</div>
         </div>
       </div>
     </div>
   )
 }
 
-function Detay({ g, onKapat }) {
+function Detay({ g, kartMod, onKapat }) {
+  const { sirali, enUcuz, tasarruf } = grupFiyat(g, kartMod)
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center p-3" onClick={onKapat}>
       <div className="bg-base-100 rounded-2xl w-full max-w-md p-4 space-y-3 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -126,26 +129,29 @@ function Detay({ g, onKapat }) {
         <div>
           <div className="text-xs font-semibold text-base-content/60 mb-1.5">Fiyat karşılaştırması</div>
           <div className="space-y-1.5">
-            {g.magazalar.map((m, i) => (
+            {sirali.map((m, i) => (
               <div key={m.magaza} className={`flex items-center justify-between rounded-xl px-3 py-2 ${i === 0 ? 'bg-green-50 border-2 border-green-300' : 'bg-base-200/60 border border-base-300'}`}>
                 <span className="flex items-center gap-2 flex-wrap">
                   <MagazaEtiket magaza={m.magaza} />
                   {i === 0 && <span className="text-[10px] font-bold bg-green-600 text-white rounded-full px-2 py-0.5">EN UCUZ</span>}
-                  {KART_MAGAZA.has(m.magaza) && <span className="text-[10px] text-base-content/40">kartsız</span>}
+                  {m.kartIle && <span className="text-[10px] font-bold text-secondary bg-secondary/10 rounded-full px-2 py-0.5">kart ile</span>}
                   <StokRozet stok={m.stok} />
                 </span>
-                <span className={`font-extrabold ${i === 0 ? 'text-green-700 text-lg' : 'text-base-content/50 line-through'}`}>{tl(m.fiyat)}</span>
+                <span className="text-right leading-tight">
+                  <span className={`font-extrabold ${i === 0 ? 'text-green-700 text-lg' : 'text-base-content/50 line-through'}`}>{tl(m.etkin)}</span>
+                  {m.kartIle && <span className="block text-[10px] text-base-content/40 font-normal no-underline">herkese açık {tl(m.fiyat)}</span>}
+                </span>
               </div>
             ))}
           </div>
-          {g.tasarruf > 0 && (
+          {tasarruf > 0 && (
             <div className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-secondary">
-              <TrendingDown size={16} /> {g.enUcuz.magaza}'da <b>{tl(g.tasarruf)}</b> daha ucuz
+              <TrendingDown size={16} /> {enUcuz.magaza}'da <b>{tl(tasarruf)}</b> daha ucuz
             </div>
           )}
-          {g.magazaSayisi === 1 && <div className="mt-2 text-xs text-base-content/50">Şimdilik sadece {g.enUcuz.magaza}'da bulundu.</div>}
+          {g.magazaSayisi === 1 && <div className="mt-2 text-xs text-base-content/50">Şimdilik sadece {enUcuz.magaza}'da bulundu.</div>}
         </div>
-        <div className="text-[11px] text-base-content/40 pt-1 border-t border-base-200">Gösterilen fiyatlar kartsız/herkese açık fiyatlardır; Gratis ve Rossmann kartıyla daha ucuz olabilir. Anlık farklılık olabilir.</div>
+        <div className="text-[11px] text-base-content/40 pt-1 border-t border-base-200">{kartMod ? 'Mümkünse mağaza kartı (Eve/Gratis/Rossmann Kart) fiyatı gösterilir; kart fiyatı yoksa herkese açık fiyat kullanılır.' : 'Herkese açık (kartsız) fiyatlar gösterilir; mağaza kartıyla daha ucuz olabilir.'} Anlık farklılık olabilir.</div>
       </div>
     </div>
   )
@@ -160,6 +166,7 @@ export default function Kozmetik() {
   const [altKelime, setAltKelime] = useState(null) // alt başlık (ürün adında aranan kelime)
   const [acikKat, setAcikKat] = useState(null)      // açık kutu (alt başlıklar görünsün)
   const [sadeceKarsi, setSadeceKarsi] = useState(false)
+  const [kartMod, setKartMod] = useState(true) // true = kart fiyatına göre (varsayılan)
   const [gosterilen, setGosterilen] = useState(SAYFA_ADET)
   const [secili, setSecili] = useState(null)
 
@@ -262,11 +269,16 @@ export default function Kozmetik() {
       {!yukleniyor && (
         <div className="flex items-center justify-between gap-2 flex-wrap px-1">
           <div className="text-xs text-base-content/50">{suzulmus.length} ürün{kategori ? ` · ${kategori}` : ''}{altKelime ? ` · ${altKelime}` : ''}{aktifQ ? ` · "${aktifQ}"` : ''}</div>
-          {karsiSayisi > 0 && (
-            <button onClick={() => setSadeceKarsi((v) => !v)} className={`btn btn-xs gap-1 ${sadeceKarsi ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>
-              ⚖️ Sadece karşılaştırmalı ({karsiSayisi})
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => setKartMod((v) => !v)} className={`btn btn-xs gap-1 ${kartMod ? 'btn-secondary' : 'btn-ghost bg-base-100 border-base-300'}`} title="Mağaza kartı fiyatlarını göster/gizle">
+              🏷️ {kartMod ? 'Kart fiyatıyla' : 'Kartsız fiyat'}
             </button>
-          )}
+            {karsiSayisi > 0 && (
+              <button onClick={() => setSadeceKarsi((v) => !v)} className={`btn btn-xs gap-1 ${sadeceKarsi ? 'btn-primary' : 'btn-ghost bg-base-100 border-base-300'}`}>
+                ⚖️ Sadece karşılaştırmalı ({karsiSayisi})
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -278,7 +290,7 @@ export default function Kozmetik() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
             {suzulmus.slice(0, gosterilen).map((g) => (
-              <Kart key={g.anahtar} g={g} onClick={() => { setSecili(g); try { izle('kozmetik_urun', { baslik: g.ad }) } catch { /* yok */ } }} />
+              <Kart key={g.anahtar} g={g} kartMod={kartMod} onClick={() => { setSecili(g); try { izle('kozmetik_urun', { baslik: g.ad }) } catch { /* yok */ } }} />
             ))}
           </div>
           {gosterilen < suzulmus.length && (
@@ -289,9 +301,9 @@ export default function Kozmetik() {
         </>
       )}
 
-      <p className="text-[11px] text-base-content/40 text-center pt-2">Fiyatlar Gratis, Eve ve Rossmann'dan düzenli güncellenir; <b>kartsız/herkese açık fiyatlardır</b> (kart ile daha ucuz olabilir). Anlık farklılık olabilir.</p>
+      <p className="text-[11px] text-base-content/40 text-center pt-2">Fiyatlar Gratis, Eve ve Rossmann'dan düzenli güncellenir. {kartMod ? 'Mümkünse mağaza kartı fiyatı gösterilir.' : 'Kartsız/herkese açık fiyatlar gösterilir.'} Anlık farklılık olabilir.</p>
 
-      {secili && <Detay g={secili} onKapat={() => setSecili(null)} />}
+      {secili && <Detay g={secili} kartMod={kartMod} onKapat={() => setSecili(null)} />}
     </div>
   )
 }
