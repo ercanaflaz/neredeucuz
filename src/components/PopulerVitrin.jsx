@@ -82,7 +82,9 @@ export default function PopulerVitrin({ terimler, konum, onSelect, adet = 8 }) {
       if (!iptal) setYukleniyor(false)
     })()
 
-    return () => { iptal = true }
+    // StrictMode (dev) effect'i iki kez çalıştırır: cleanup'ta ref'i sıfırla ki
+    // ikinci (gerçek) mount fetch'i tekrar başlatsın — yoksa yerelde liste boş kalır.
+    return () => { iptal = true; sonAnahtar.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anahtar])
 
