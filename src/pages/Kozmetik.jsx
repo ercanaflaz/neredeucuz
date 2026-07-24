@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Loader2, Sparkles, Check, X, TrendingDown, ChevronDown } from 'lucide-react'
 import { tl } from '../lib/format'
 import { kozmetikTumGruplar, grupFiyat } from '../lib/kozmetik'
@@ -169,6 +169,7 @@ export default function Kozmetik() {
   const [kartMod, setKartMod] = useState(true) // true = kart fiyatına göre (varsayılan)
   const [gosterilen, setGosterilen] = useState(SAYFA_ADET)
   const [secili, setSecili] = useState(null)
+  const altPanelRef = useRef(null)
 
   useEffect(() => {
     let iptal = false
@@ -190,6 +191,14 @@ export default function Kozmetik() {
   }, [tumGruplar, kategori, altKelime, sadeceKarsi, aktifQ])
 
   useEffect(() => { setGosterilen(SAYFA_ADET) }, [kategori, altKelime, sadeceKarsi, aktifQ])
+
+  // Kategori kutusu açılınca alt panel + sonuçlar görünür olsun (özellikle mobilde
+  // kutular ekranı doldurduğu için sayfanın açıldığı fark edilmiyordu).
+  useEffect(() => {
+    if (!acikKat) return
+    const t = setTimeout(() => { altPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, 60)
+    return () => clearTimeout(t)
+  }, [acikKat])
 
   function kutuSec(k) {
     if (kategori === k.ad) { setKategori(null); setAcikKat(null); setAltKelime(null) }
@@ -245,7 +254,7 @@ export default function Kozmetik() {
             if (!k) return null
             const ak = AKSAN[k.renk] || {}
             return (
-              <div className={`rounded-2xl border-2 bg-base-100 p-3.5 ${ak.border || 'border-base-300'}`}>
+              <div ref={altPanelRef} className={`scroll-mt-24 rounded-2xl border-2 bg-base-100 p-3.5 ${ak.border || 'border-base-300'}`}>
                 <div className="flex items-center gap-2 mb-2.5">
                   <span className="text-lg">{k.emoji}</span>
                   <span className="font-semibold text-sm">{k.ad}</span>
