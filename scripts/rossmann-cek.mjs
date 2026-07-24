@@ -12,9 +12,9 @@
 import { chromium } from 'playwright'
 
 const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
-const KATEGORILER = (process.env.ROSSMANN_KATEGORI || 'makyaj,cilt-bakimi,sac-bakim,parfum-deodorant,kisisel-bakim')
+const KATEGORILER = (process.env.ROSSMANN_KATEGORI || 'makyaj,cilt-bakimi,sac-bakim,parfum-deodorant,kisisel-bakim,agiz-bakim,gunes-urunleri,el-ayak-bakim')
   .split(',').map((s) => s.trim()).filter(Boolean)
-const URUN_LIMIT = Number(process.env.URUN_LIMIT || 40)
+const URUN_LIMIT = Number(process.env.URUN_LIMIT || 60)
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
 // Residential proxy (secret'lardan). PROXY_SERVER yoksa proxy'siz çalışır (o zaman 403 beklenir).

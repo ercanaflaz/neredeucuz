@@ -87,22 +87,33 @@ async function supabaseYaz(kayitlar) {
   return { yazildi }
 }
 
+// 429 (rate limit) / 403 gelince bekleyip yeni proxy IP'siyle tekrar dener.
+async function getir(url, deneme = 0) {
+  const r = await pfetch(url, { headers: ISTEK_BASLIK, dispatcher: DISPATCHER })
+  if ((r.status === 429 || r.status === 403) && deneme < 8) {
+    await BEKLE(3000 + deneme * 3000) // 3s, 6s, 9s... artan bekleme
+    return getir(url, deneme + 1)
+  }
+  return r
+}
+
 async function main() {
   if (DISPATCHER) console.log(`Proxy kullanılıyor: ${process.env.PROXY_SERVER}`)
   else console.log('Proxy YOK — Eve Cloudflare arkasında, datacenter IP 403 alır. PROXY_SERVER ekleyin.')
   const hepsi = []
+  let ardisikHata = 0
   for (let sayfa = 1; sayfa <= MAX_SAYFA; sayfa++) {
     let urunler = []
     try {
-      // undici'nin kendi fetch'i — dispatcher (proxy) burada kesin uygulanır (global fetch'te uygulanmıyor)
-      const r = await pfetch(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`, { headers: ISTEK_BASLIK, dispatcher: DISPATCHER })
-      if (!r.ok) { console.log(`sayfa ${sayfa}: ${r.status}`); break }
+      const r = await getir(`${BASE}?limit=${SAYFA_LIMIT}&page=${sayfa}`)
+      if (!r.ok) { console.log(`sayfa ${sayfa}: ${r.status}`); if (++ardisikHata >= 3) break; await BEKLE(4000); continue }
       urunler = (await r.json()).products || []
-    } catch (e) { console.log(`sayfa ${sayfa} hata:`, e.message); break }
+    } catch (e) { console.log(`sayfa ${sayfa} hata:`, e.message); if (++ardisikHata >= 3) break; continue }
+    ardisikHata = 0
     if (!urunler.length) break
     for (const p of urunler) { const u = urunCoz(p); if (u && u.ad && u.fiyat) hepsi.push(u) }
     console.log(`sayfa ${sayfa}: ${urunler.length} ürün (toplam ${hepsi.length})`)
-    await BEKLE(250)
+    await BEKLE(2500) // Shopify rate limit'e takılmamak için sayfalar arası nefes
   }
 
   const tekil = [...new Map(hepsi.map((u) => [u.url, u])).values()]

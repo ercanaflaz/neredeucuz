@@ -14,9 +14,18 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15
 const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // Hangi kelimeleri/kategorileri tarayacağız (Gratis /search?q=…)
-const KELIMELER = (process.env.KELIMELER || 'maskara,ruj,fondöten,şampuan,parfüm,cilt kremi,oje,far,göz kalemi,güneş kremi')
-  .split(',').map((s) => s.trim()).filter(Boolean)
-const URUN_LIMIT = Number(process.env.URUN_LIMIT || 40) // kelime başına ürün
+const KELIMELER = (process.env.KELIMELER || [
+  'maskara', 'ruj', 'likit ruj', 'fondöten', 'kapatıcı', 'allık', 'pudra', 'far', 'far paleti',
+  'göz kalemi', 'eyeliner', 'kaş kalemi', 'oje', 'aseton', 'makyaj temizleme',
+  'şampuan', 'saç kremi', 'saç maskesi', 'saç boyası', 'saç köpüğü', 'saç spreyi', 'jöle',
+  'parfüm', 'deodorant', 'kolonya', 'body mist',
+  'cilt kremi', 'nemlendirici', 'güneş kremi', 'temizleme jeli', 'tonik', 'serum', 'yüz maskesi',
+  'göz kremi', 'el kremi', 'vücut losyonu', 'peeling',
+  'duş jeli', 'sabun', 'diş macunu', 'diş fırçası', 'ağız gargarası',
+  'tuvalet kağıdı', 'kağıt havlu', 'ıslak mendil', 'ped', 'bebek bezi',
+  'tıraş köpüğü', 'tıraş bıçağı', 'jilet',
+].join(',')).split(',').map((s) => s.trim()).filter(Boolean)
+const URUN_LIMIT = Number(process.env.URUN_LIMIT || 48) // kelime başına ürün
 
 async function getir(url) {
   const r = await fetch(url, {
