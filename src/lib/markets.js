@@ -29,9 +29,24 @@ const MARKALAR = [
 
 const VARSAYILAN = { ad: null, bg: '#64748b', text: '#ffffff', stil: 'kutu' }
 
+// Marketlerin kendi logoları (public asset yolu). Logo yüklenemezse MarketBadge
+// otomatik yazı rozetine düşer — yani bir şey bozulmaz.
+const LOGO_BASE = 'https://marketfiyati.org.tr/assets/images/marketim/logos/'
+const LOGOLAR = {
+  'BİM': 'bim-home.svg',
+  'A101': 'a101-home.svg',
+  'ŞOK': 'sok-home.svg',
+  'Migros': 'migros-home.svg',
+  'CarrefourSA': 'carrefour-home.svg',
+  'Hakmar': 'hakmar-home.svg',
+  'Tarım Kredi': 'tarim_kredi-home.svg',
+}
+
 // Verilen market adına en uygun marka kimliğini döndürür.
 export function marka(marketAdi = '') {
   const s = String(marketAdi).toLocaleLowerCase('tr')
   const bulunan = MARKALAR.find((m) => m.anahtar.some((a) => s.includes(a)))
-  return bulunan ? { ...bulunan } : { ...VARSAYILAN, ad: marketAdi || 'Market' }
+  const temel = bulunan ? { ...bulunan } : { ...VARSAYILAN, ad: marketAdi || 'Market' }
+  temel.logo = LOGOLAR[temel.ad] ? LOGO_BASE + LOGOLAR[temel.ad] : null
+  return temel
 }
