@@ -12,9 +12,10 @@
 import { chromium } from 'playwright'
 
 const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
-const KATEGORILER = (process.env.ROSSMANN_KATEGORI || 'makyaj,cilt-bakimi,sac-bakim,parfum-deodorant,kisisel-bakim,agiz-bakim,gunes-urunleri,el-ayak-bakim')
+// Sadece çalıştığı doğrulanmış kategoriler (bazı slug'lar 404 veriyordu)
+const KATEGORILER = (process.env.ROSSMANN_KATEGORI || 'makyaj,cilt-bakimi,sac-bakim,parfum-deodorant,kisisel-bakim')
   .split(',').map((s) => s.trim()).filter(Boolean)
-const URUN_LIMIT = Number(process.env.URUN_LIMIT || 60)
+const URUN_LIMIT = Number(process.env.URUN_LIMIT || 80)
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
 // Residential proxy (secret'lardan). PROXY_SERVER yoksa proxy'siz çalışır (o zaman 403 beklenir).
@@ -82,9 +83,9 @@ async function main() {
         if (resp && resp.status() === 403) { console.log(`[${kat}] 403 (proxy IP'si de engelli olabilir)`); continue }
         await BEKLE(500)
         // Daha fazla ürün yüklensin diye sayfayı birkaç kez aşağı kaydır (lazy-load)
-        for (let s = 0; s < 6; s++) {
+        for (let s = 0; s < 12; s++) {
           await page.evaluate(() => window.scrollBy(0, document.body.scrollHeight))
-          await BEKLE(600)
+          await BEKLE(700)
         }
         linkler = await page.$$eval('a[href*="-p-"]', (as) => [...new Set(as.map((a) => a.href).filter((h) => /-p-[a-z0-9]+/i.test(h)))])
         linkler = linkler.slice(0, URUN_LIMIT)

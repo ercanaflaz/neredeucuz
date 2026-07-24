@@ -15,15 +15,22 @@ const BEKLE = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // Hangi kelimeleri/kategorileri tarayacağız (Gratis /search?q=…)
 const KELIMELER = (process.env.KELIMELER || [
+  // Ürün tipleri
   'maskara', 'ruj', 'likit ruj', 'fondöten', 'kapatıcı', 'allık', 'pudra', 'far', 'far paleti',
-  'göz kalemi', 'eyeliner', 'kaş kalemi', 'oje', 'aseton', 'makyaj temizleme',
-  'şampuan', 'saç kremi', 'saç maskesi', 'saç boyası', 'saç köpüğü', 'saç spreyi', 'jöle',
-  'parfüm', 'deodorant', 'kolonya', 'body mist',
+  'göz kalemi', 'eyeliner', 'kaş kalemi', 'oje', 'aseton', 'makyaj temizleme', 'highlighter', 'bronzer',
+  'şampuan', 'saç kremi', 'saç maskesi', 'saç boyası', 'saç köpüğü', 'saç spreyi', 'jöle', 'saç serumu',
+  'parfüm', 'deodorant', 'kolonya', 'body mist', 'roll on',
   'cilt kremi', 'nemlendirici', 'güneş kremi', 'temizleme jeli', 'tonik', 'serum', 'yüz maskesi',
-  'göz kremi', 'el kremi', 'vücut losyonu', 'peeling',
-  'duş jeli', 'sabun', 'diş macunu', 'diş fırçası', 'ağız gargarası',
-  'tuvalet kağıdı', 'kağıt havlu', 'ıslak mendil', 'ped', 'bebek bezi',
-  'tıraş köpüğü', 'tıraş bıçağı', 'jilet',
+  'göz kremi', 'el kremi', 'vücut losyonu', 'peeling', 'micellar su', 'yüz temizleme',
+  'duş jeli', 'sabun', 'diş macunu', 'diş fırçası', 'ağız gargarası', 'tıraş köpüğü', 'tıraş bıçağı', 'jilet',
+  'tuvalet kağıdı', 'kağıt havlu', 'ıslak mendil', 'ped', 'bebek bezi', 'bebek şampuanı',
+  // Markalar (Eve ile örtüşmeyi artırır)
+  'golden rose', 'pastel', 'flormar', 'note', 'maybelline', 'loreal', 'nivea', 'garnier', 'dove',
+  'elidor', 'clear', 'pantene', 'head shoulders', 'colgate', 'sensodyne', 'oral b', 'ipana', 'signal',
+  'sinoz', 'bioblas', 'gliss', 'syoss', 'taft', 'palmolive', 'duru', 'arko', 'blendax', 'dalan',
+  'rexona', 'old spice', 'axe', 'fa', 'bepanthol', 'la roche posay', 'bioderma', 'avene', 'vichy',
+  'eucerin', 'cetaphil', 'neutrogena', 'sebamed', 'urban care', 'the ceel', 'ashley joy', 'eveline',
+  'nyx', 'essence', 'catrice', 'revolution', 'wet n wild', 'aloe vera',
 ].join(',')).split(',').map((s) => s.trim()).filter(Boolean)
 const URUN_LIMIT = Number(process.env.URUN_LIMIT || 48) // kelime başına ürün
 
