@@ -157,6 +157,20 @@ function Detay({ g, kartMod, onKapat }) {
   )
 }
 
+// Yüklenirken gösterilen iskelet (skeleton) kart — gerçek kart düzenini taklit eder.
+function IskeletKart() {
+  return (
+    <div className="bg-base-100 rounded-2xl border border-base-300 overflow-hidden flex flex-col">
+      <div className="aspect-square bg-base-200 animate-pulse" />
+      <div className="p-2.5 space-y-2">
+        <div className="h-3 w-full bg-base-200 rounded animate-pulse" />
+        <div className="h-3 w-2/3 bg-base-200 rounded animate-pulse" />
+        <div className="h-7 w-full bg-base-200 rounded-lg animate-pulse mt-2" />
+      </div>
+    </div>
+  )
+}
+
 export default function Kozmetik() {
   const [tumGruplar, setTumGruplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -292,7 +306,14 @@ export default function Kozmetik() {
       )}
 
       {yukleniyor ? (
-        <div className="flex justify-center py-16 text-base-content/40"><Loader2 className="animate-spin" /></div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-2 text-sm text-base-content/60 py-2">
+            <Loader2 className="animate-spin text-primary" size={18} /> Ürünler yükleniyor, lütfen bekleyin…
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {Array.from({ length: 8 }).map((_, i) => <IskeletKart key={i} />)}
+          </div>
+        </div>
       ) : suzulmus.length === 0 ? (
         <div className="text-center text-sm text-base-content/50 py-16">Ürün bulunamadı. Farklı bir kelime ya da kategori dene.</div>
       ) : (
