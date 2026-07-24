@@ -1,7 +1,8 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
-import { ChevronLeft, Heart, Bell, Trophy, ShoppingCart, Check, Loader2, RefreshCw } from 'lucide-react'
+import { ChevronLeft, Heart, Bell, Trophy, ShoppingCart, Check, Loader2, RefreshCw, Navigation } from 'lucide-react'
 import { tl, tarih, tasarrufYuzde } from '../lib/format'
 import { urunGetirById, normalize } from '../lib/marketfiyati'
+import { yolTarifiUrl } from '../lib/harita'
 import AdSlot from '../components/AdSlot'
 import MarketBadge from '../components/MarketBadge'
 import ListeyeEkle from '../components/ListeyeEkle'
@@ -174,6 +175,16 @@ export default function Product({ urun: urunProp, onBack, user }) {
                   {d.indexTime ? tarih(d.indexTime) : ''}
                   {i === 0 ? <span className="text-primary font-semibold"> · en ucuz</span> : ''}
                 </div>
+                {(() => {
+                  const url = yolTarifiUrl({ lat: d.latitude, lon: d.longitude, ad: `${d.market} ${d.depotName || ''}`, yuru: d.mesafe != null && d.mesafe <= 1.5 })
+                  if (!url) return null
+                  return (
+                    <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 mt-0.5 text-[11px] font-semibold text-primary hover:underline">
+                      <Navigation size={11} /> Yol tarifi
+                    </a>
+                  )
+                })()}
               </div>
             </div>
             <div className="text-right shrink-0 pl-2">

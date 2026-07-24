@@ -1,5 +1,5 @@
 import { useState, useMemo, useSyncExternalStore, useEffect, useRef, lazy, Suspense } from 'react'
-import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft, RefreshCw, LayoutGrid, ChevronDown } from 'lucide-react'
+import { Barcode, Search, MapPin, Loader2, Flame, TrendingDown, SlidersHorizontal, ArrowLeft, RefreshCw, LayoutGrid, ChevronDown, Navigation } from 'lucide-react'
 import ProductCard from '../components/ProductCard'
 import PopulerVitrin from '../components/PopulerVitrin'
 import AdSlot from '../components/AdSlot'
@@ -13,6 +13,7 @@ import { barkodCoz } from '../lib/barkod'
 import { tl } from '../lib/format'
 import { subscribe, getSnapshot, konumIste, yaricapDegistir, YARICAP_SECENEKLERI, aramaLogla, yakinMarketleriYukle } from '../lib/store'
 import { izle } from '../lib/izleme'
+import { yolTarifiUrl } from '../lib/harita'
 import ReklamYuva from '../components/ReklamYuva'
 import AiAsistan from '../components/AiAsistan'
 import NasilKullanilir from '../components/NasilKullanilir'
@@ -618,13 +619,26 @@ export default function Home({ onSelect }) {
               <span className="text-xs text-base-content/50">· {store.yaricap} km içinde {yakinlar.length}</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible">
-              {yakinlar.slice(0, 12).map((m) => (
-                <div key={m.id} className="shrink-0 bg-base-100 border border-base-300 rounded-2xl p-2.5 min-w-[130px] md:min-w-0">
-                  <MarketBadge market={m.market} size="sm" />
-                  <div className="text-xs mt-1 line-clamp-1">{m.sube}</div>
-                  {m.mesafe != null && <div className="text-[11px] text-base-content/50">{formatMesafe(m.mesafe)}</div>}
-                </div>
-              ))}
+              {yakinlar.slice(0, 12).map((m) => {
+                const url = yolTarifiUrl({ lat: m.lat, lon: m.lon, ad: `${m.market} ${m.sube || ''}`, yuru: m.mesafe != null && m.mesafe <= 1500 })
+                const ic = (
+                  <>
+                    <MarketBadge market={m.market} size="sm" />
+                    <div className="text-xs mt-1 line-clamp-1">{m.sube}</div>
+                    {m.mesafe != null && <div className="text-[11px] text-base-content/50">{formatMesafe(m.mesafe)}</div>}
+                    {url && <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary"><Navigation size={11} /> Yol tarifi</div>}
+                  </>
+                )
+                return url ? (
+                  <a key={m.id} href={url} target="_blank" rel="noopener noreferrer"
+                    onClick={() => { try { izle('yol_tarifi', { baslik: m.market }) } catch { /* yok */ } }}
+                    className="shrink-0 block bg-base-100 border border-base-300 rounded-2xl p-2.5 min-w-[130px] md:min-w-0 hover:border-primary/50 hover:shadow-sm active:scale-[0.98] transition">
+                    {ic}
+                  </a>
+                ) : (
+                  <div key={m.id} className="shrink-0 bg-base-100 border border-base-300 rounded-2xl p-2.5 min-w-[130px] md:min-w-0">{ic}</div>
+                )
+              })}
             </div>
           </section>
         )
